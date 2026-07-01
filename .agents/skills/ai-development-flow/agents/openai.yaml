@@ -1,0 +1,6 @@
+policy:
+  allow_implicit_invocation: false
+
+interface:
+  display_name: "ai-development-flow"
+  short_description: "Run repository AI development flow from a task brief using source-of-truth docs"
