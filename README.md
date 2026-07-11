@@ -1,29 +1,25 @@
 # project-template
 
-## AI Flow: Required Setup
+This repository is an AI-friendly project template for teams working in GitLab with multiple coding assistants.
 
-Minimum setup for Copilot, Codex, and Claude:
+## AI Flow: How To Run
 
-1. Use this repository with AI instructions enabled (`AGENTS.md` plus agent-specific entrypoint files).
-2. Ensure AI agents have access to:
-	- repository files;
-	- terminal commands;
-	- Git operations;
-	- GitLab (issues, merge requests, comments).
-3. Use GitLab as source of truth for issues, MR discussion, and CI status.
-4. Run task work only from a dedicated worktree in `tmp/wts/<task-slug>/`.
-5. Use `docs/engineering/ai-development-flow.md` as the only flow logic source.
-6. Keep all GitLab comments in Russian.
+Use single-command orchestration for `feat`, `change-request`, `bug`, `chore`, or `docs`.
+
+### Required dependencies
+
+To use this flow, install and configure one of the following AI agents, plus the `glab` CLI:
+
+- GitHub Copilot
+- Claude Code
+- Codex
+- `glab` CLI, used for GitLab comments and merge requests
 
 Native launch wrappers (no logic duplication, only references to source-of-truth):
 
 - Copilot prompt: `.github/prompts/ai-development-flow.prompt.md`
 - Claude skill: `.claude/skills/ai-development-flow/SKILL.md`
 - Codex skill: `.agents/skills/ai-development-flow/SKILL.md`
-
-## AI Flow: How To Run
-
-Use single-command orchestration for `feat`, `change-request`, `bug`, `chore`, or `docs`.
 
 ### Native command by platform
 
@@ -42,18 +38,6 @@ Use single-command orchestration for `feat`, `change-request`, `bug`, `chore`, o
 
 All three wrappers must follow `docs/engineering/ai-development-flow.md` and must not redefine flow logic.
 
-### Single-Command Behavior
-
-One command starts the full flow.
-
-What happens next:
-- AI Manager asks clarification questions (`[REQ]` and `[TECH]`) and waits for your answers.
-- After your clarification answers, orchestration continues automatically through AI Developer and AI Reviewer.
-- Review-fix loop runs automatically (up to 5 iterations, or earlier stop when no major findings remain).
-- On successful completion, you receive MR reference plus explicit `ready for Human Handoff` status.
-
-Human Handoff remains mandatory and is performed by a human in GitLab.
-
 ### Task Brief Template
 
 Provide the task brief below when invoking the native command:
@@ -68,15 +52,6 @@ Out of scope: <what must not be changed>
 Links: <issue, docs, related MR>
 ```
 
-Manager reference files:
-- `docs/engineering/ai-development-flow.md`
-- `docs/ai/prompts/manager.md`
-- `docs/ai/skills/manager/SKILL.md`
-
-Expected result from Manager:
-- clarification questions labeled `[REQ]` or `[TECH]`;
-- prepared work-item artifacts in `docs/work-items/NNN-<type>-<short-slug>/`.
-
 ### Mandatory Human Handoff
 
 After AI loop completion, a human must add a GitLab comment in Russian with:
@@ -84,7 +59,15 @@ After AI loop completion, a human must add a GitLab comment in Russian with:
 - current status (`approved` or `requires changes`);
 - next action if changes are required.
 
-This repository is an AI-friendly project template for teams working in GitLab with multiple coding assistants.
+### Single-Command Behavior
+
+One command starts the full flow.
+
+What happens next:
+- AI Manager asks clarification questions (`[REQ]` and `[TECH]`) and waits for your answers.
+- After your clarification answers, orchestration continues automatically through AI Developer and AI Reviewer.
+- Review-fix loop runs automatically (up to 5 iterations, or earlier stop when no major findings remain).
+- On successful completion, you receive MR reference plus explicit `ready for Human Handoff` status.
 
 ## What this repository defines
 
