@@ -20,7 +20,7 @@ Links: <issues/docs/MR>
 Execution rules:
 - ask clarifying questions with explicit labels `[REQ]` or `[TECH]`;
 - create/update required work-item artifacts exactly as defined in the source-of-truth;
-- keep all GitLab-facing wording in Russian.
+- use the resolved GitLab communication language for GitLab-facing wording.
 
 Output:
 - finalized clarifications;

@@ -13,7 +13,7 @@ Input:
 Execution rules:
 - verify requirements/guides/security conformance;
 - explicitly check happy-path artifacts/evidence;
-- add important findings in GitLab in Russian;
+- add important findings using the resolved GitLab communication language;
 - prefer inline code comments when possible;
 - resolve outdated handled comments where possible.
 

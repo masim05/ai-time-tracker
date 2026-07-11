@@ -9,7 +9,16 @@ Scope:
 
 Important:
 - AI-specific files must reference this document and must not duplicate this flow logic.
-- All GitLab comments created by AI agents must be in Russian.
+
+## Configuration
+
+Before creating or updating GitLab content, resolve the communication language from the repository root:
+
+1. Read `gitlab.language` from `.ai-flow.yml` when the file and setting are present.
+2. Otherwise, use `en`.
+3. If the configuration exists but fails `scripts/check-ai-flow-config.sh`, stop and report the validation error instead of guessing a language.
+
+The resolved GitLab communication language applies to merge request titles and descriptions, AI comments, review findings, replies, completion comments, and human handoff guidance. It does not control agent chat responses, source code, work-item artifacts, or general repository documentation.
 
 ## Roles
 
@@ -70,6 +79,7 @@ AI Developer must:
 - implement only in a dedicated worktree under `tmp/wts/<task-slug>/`;
 - keep task-type boundaries from `docs/engineering/testing-policy.md`;
 - update documentation when required;
+- use the resolved GitLab communication language for merge request text, comments, and replies;
 - push changes and create/update the MR in GitLab with verification details.
 
 ## Step 3: AI Reviewer Review In GitLab
@@ -80,7 +90,7 @@ AI Reviewer checks:
 - security risks (input validation, auth/access boundaries, secret handling, unsafe defaults, dependency/security regressions).
 
 Review behavior:
-- leave important findings in GitLab comments in Russian;
+- leave important findings in GitLab using the resolved communication language;
 - prefer inline code comments where possible;
 - resolve outdated/handled old review threads where possible.
 
@@ -88,7 +98,7 @@ Review behavior:
 
 Loop between AI Reviewer and AI Developer:
 - AI Reviewer posts findings.
-- AI Developer fixes, commits, pushes, and replies in GitLab in Russian.
+- AI Developer fixes, commits, pushes, and replies in GitLab using the resolved communication language.
 
 Loop policy:
 - maximum 5 iterations;
@@ -96,7 +106,7 @@ Loop policy:
 
 ## Step 5: Human Handoff (Mandatory)
 
-After AI loop ends, human participation is mandatory and must be recorded as a GitLab comment in Russian.
+After AI loop ends, human participation is mandatory and must be recorded as a GitLab comment in the resolved communication language.
 
 Minimum handoff comment meaning:
 - human joined review/approval process;
@@ -114,7 +124,7 @@ When AI Manager, AI Developer, and AI Reviewer complete successfully, the orches
 
 Before considering task ready:
 - all required artifacts exist in work item;
-- MR contains Russian discussion/comments from AI cycle;
+- MR discussion and comments from the AI cycle use the resolved communication language;
 - reviewer findings are resolved or explicitly tracked;
 - human handoff comment is present in GitLab;
 - pushed commit has green GitLab CI.

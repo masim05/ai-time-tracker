@@ -12,10 +12,10 @@ Input:
 Execution rules:
 - implement in dedicated worktree under `tmp/wts/<task-slug>/`;
 - respect task-type boundaries and all project guides;
-- create/update MR and respond to review findings in GitLab in Russian;
+- create/update the MR and respond to review findings using the resolved GitLab communication language;
 - continue until loop stop condition from the source-of-truth is met.
 
 Output:
 - commits and pushed branch;
 - MR updates;
-- Russian responses to reviewer comments.
+- responses to reviewer comments in the resolved GitLab communication language.

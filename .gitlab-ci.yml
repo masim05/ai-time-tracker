@@ -5,6 +5,8 @@ policy-checks:
   stage: verify
   image: bash:5.2
   script:
+    - bash scripts/check-ai-flow-config.sh
+    - bash tests/integration/check-ai-flow-config.sh
     - bash scripts/check-architecture.sh
     - bash scripts/check-specs.sh
     - bash scripts/check-dod.sh

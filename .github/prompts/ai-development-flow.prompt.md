@@ -21,7 +21,6 @@ Execution rules:
 5. Run review-fix iterations automatically up to source-of-truth limits.
 6. Stop only when AI Manager, AI Developer, and AI Reviewer all complete successfully or when blocked.
 7. On success, return MR reference and explicit `ready for Human Handoff` status.
-8. Keep all GitLab comments in Russian.
 
 User context:
 $task_brief

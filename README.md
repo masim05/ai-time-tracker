@@ -56,10 +56,13 @@ After the AI flow completes, a human must add a GitLab comment in the configured
 - current status (`approved` or `requires changes`);
 - next action if changes are required.
 
+Set the language with `gitlab.language` in `.ai-flow.yml`. It defaults to `en` when the file or setting is absent.
+
 All platform entry points follow `docs/engineering/ai-development-flow.md`, the source of truth for flow behavior.
 
 ## Repository Guide
 
+- `.ai-flow.yml`: optional repository settings for the AI flow; the checked-in template sets GitLab communication to English.
 - `AGENTS.md`: entrypoint and operating contract for AI assistants.
 - `docs/architecture/`: project structure, boundaries, principles, and decisions.
 - `docs/engineering/testing-policy.md`: test placement and task-type change rules.
@@ -83,6 +86,8 @@ GitLab is the source of truth for issues, merge requests, discussions, and CI.
 Run local policy checks before each push:
 
 ```bash
+scripts/check-ai-flow-config.sh
+tests/integration/check-ai-flow-config.sh
 scripts/check-architecture.sh
 scripts/check-specs.sh
 scripts/check-dod.sh

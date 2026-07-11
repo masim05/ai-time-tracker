@@ -8,6 +8,7 @@ This document defines the required repository structure.
 - `AGENTS.md` — common contract for all AI agents.
 - `CLAUDE.md` — Claude-specific entrypoint that links to `AGENTS.md`.
 - `CODEX.md` — Codex-specific entrypoint that links to `AGENTS.md`.
+- `.ai-flow.yml` — optional repository-specific AI flow configuration; omitted settings use documented defaults.
 - `.github/copilot-instructions.md` — GitHub Copilot-specific entrypoint that links to `AGENTS.md`.
 - `.gitlab-ci.yml` — GitLab CI pipeline for repository policy checks.
 
@@ -19,6 +20,7 @@ repo/
   AGENTS.md
   CLAUDE.md
   CODEX.md
+  .ai-flow.yml
 
   .github/
     copilot-instructions.md
@@ -82,6 +84,7 @@ repo/
 
   tests/
     integration/
+      check-ai-flow-config.sh
     e2e/
 
   tmp/
@@ -89,6 +92,7 @@ repo/
       <task-slug>/
 
   scripts/
+    check-ai-flow-config.sh
 ```
 
 ## Work Items Structure

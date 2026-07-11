@@ -19,4 +19,3 @@ Execution requirements:
 5. Run review-fix loop automatically up to source-of-truth limits.
 6. Stop only when AI Manager, AI Developer, and AI Reviewer complete successfully or when blocked.
 7. On success, return MR reference and explicit `ready for Human Handoff` status.
-8. Keep all GitLab comments in Russian.
