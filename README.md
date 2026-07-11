@@ -6,6 +6,16 @@ This repository is an AI-friendly project template for teams working in GitLab w
 
 Use single-command orchestration for `feat`, `change-request`, `bug`, `chore`, or `docs`.
 
+### Single-Command Behavior
+
+One command starts the full flow.
+
+What happens next:
+- AI Manager asks clarification questions (`[REQ]` and `[TECH]`) and waits for your answers.
+- After your clarification answers, orchestration continues automatically through AI Developer and AI Reviewer.
+- Review-fix loop runs automatically (up to 5 iterations, or earlier stop when no major findings remain).
+- On successful completion, you receive MR reference plus explicit `ready for Human Handoff` status.
+
 ### Required dependencies
 
 To use this flow, install and configure one of the following AI agents, plus the `glab` CLI:
@@ -58,16 +68,6 @@ After AI loop completion, a human must add a GitLab comment in Russian with:
 - human joined the process;
 - current status (`approved` or `requires changes`);
 - next action if changes are required.
-
-### Single-Command Behavior
-
-One command starts the full flow.
-
-What happens next:
-- AI Manager asks clarification questions (`[REQ]` and `[TECH]`) and waits for your answers.
-- After your clarification answers, orchestration continues automatically through AI Developer and AI Reviewer.
-- Review-fix loop runs automatically (up to 5 iterations, or earlier stop when no major findings remain).
-- On successful completion, you receive MR reference plus explicit `ready for Human Handoff` status.
 
 ## What this repository defines
 
