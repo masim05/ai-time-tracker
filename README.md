@@ -2,21 +2,9 @@
 
 This repository is an AI-friendly project template for teams working in GitLab with multiple coding assistants.
 
-## AI Flow: How To Run
+## AI Flow: Quick Start
 
-Use single-command orchestration for `feat`, `change-request`, `bug`, `chore`, or `docs`.
-
-### Single-Command Behavior
-
-One command starts the full flow.
-
-What happens next:
-- AI Manager asks clarification questions (`[REQ]` and `[TECH]`) and waits for your answers.
-- After your clarification answers, orchestration continues automatically through AI Developer and AI Reviewer.
-- Review-fix loop runs automatically (up to 5 iterations, or earlier stop when no major findings remain).
-- On successful completion, you receive MR reference plus explicit `ready for Human Handoff` status.
-
-### Required dependencies
+### 1. Install dependencies
 
 To use this flow, install and configure one of the following AI agents, plus the `glab` CLI:
 
@@ -25,32 +13,24 @@ To use this flow, install and configure one of the following AI agents, plus the
 - Codex
 - `glab` CLI, used for GitLab comments and merge requests
 
-Native launch wrappers (no logic duplication, only references to source-of-truth):
-
-- Copilot prompt: `.github/prompts/ai-development-flow.prompt.md`
-- Claude skill: `.claude/skills/ai-development-flow/SKILL.md`
-- Codex skill: `.agents/skills/ai-development-flow/SKILL.md`
-
-### Native command by platform
+### 2. Run the flow
 
 1. GitHub Copilot in VS Code:
 	- run `/ai-development-flow <task brief>` in chat.
-	- provided by `.github/prompts/ai-development-flow.prompt.md`.
+	- entry point: `.github/prompts/ai-development-flow.prompt.md`.
 
 2. Claude Code:
 	- run `/ai-development-flow <task brief>` in Claude session from repository root.
-	- provided by `.claude/skills/ai-development-flow/SKILL.md`.
+	- entry point: `.claude/skills/ai-development-flow/SKILL.md`.
 
 3. Codex (CLI/IDE/App):
-	- explicit invocation is skill mention style: `$ai-development-flow <task brief>`.
-	- if skill pick list is needed, use `/skills` and select `ai-development-flow`.
-	- provided by `.agents/skills/ai-development-flow/SKILL.md`.
+	- run `$ai-development-flow <task brief>`.
+	- if needed, use `/skills` and select `ai-development-flow`.
+	- entry point: `.agents/skills/ai-development-flow/SKILL.md`.
 
-All three wrappers must follow `docs/engineering/ai-development-flow.md` and must not redefine flow logic.
+### 3. Provide the task brief
 
-### Task Brief Template
-
-Provide the task brief below when invoking the native command:
+Use this template with the command:
 
 ```md
 Task type: <feat|change-request|bug|chore|docs>
@@ -62,12 +42,21 @@ Out of scope: <what must not be changed>
 Links: <issue, docs, related MR>
 ```
 
-### Mandatory Human Handoff
+### What happens next
 
-After AI loop completion, a human must add a GitLab comment in Russian with:
+- AI Manager asks clarification questions labeled `[REQ]` or `[TECH]`.
+- AI Developer implements the task and creates or updates the merge request.
+- AI Reviewer reviews the changes and starts a fix-review loop when needed, up to 5 iterations.
+- On success, the flow returns the merge request reference and `ready for Human Handoff` status.
+
+### Human handoff
+
+After the AI flow completes, a human must add a GitLab comment in the configured communication language with:
 - human joined the process;
 - current status (`approved` or `requires changes`);
 - next action if changes are required.
+
+All platform entry points follow `docs/engineering/ai-development-flow.md`, the source of truth for flow behavior.
 
 ## What this repository defines
 
