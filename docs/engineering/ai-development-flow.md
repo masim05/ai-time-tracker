@@ -3,7 +3,7 @@
 This document is the single source of truth for AI-assisted delivery flow in this repository.
 
 Scope:
-- task types: `feat`, `change-request`, `bug`, `chore`;
+- task types: `feat`, `change-request`, `bug`, `chore`, `docs`;
 - assistants: GitHub Copilot, Codex, Claude;
 - GitLab is the source of truth for issue tracking, merge requests, discussions, and CI.
 
@@ -29,7 +29,7 @@ In single-command mode, one command starts the full flow. The agent asks Manager
 Task brief template:
 
 ```md
-Task type: <feat|change-request|bug|chore>
+Task type: <feat|change-request|bug|chore|docs>
 Task title: <short title>
 Context: <business/technical context>
 Expected result: <what should be true after delivery>

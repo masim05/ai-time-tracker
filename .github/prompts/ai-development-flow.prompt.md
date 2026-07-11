@@ -1,5 +1,5 @@
 ---
-description: Run repository AI development flow for feat/change-request/bug/chore from a task brief.
+description: Run repository AI development flow for feat/change-request/bug/chore/docs from a task brief.
 name: ai-development-flow
 argument-hint: <task brief>
 agent: agent

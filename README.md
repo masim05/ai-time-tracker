@@ -55,7 +55,7 @@ Native launch wrappers (no logic duplication, only references to source-of-truth
 
 ## AI Flow: How To Run
 
-Use single-command orchestration for `feat`, `change-request`, `bug`, or `chore`.
+Use single-command orchestration for `feat`, `change-request`, `bug`, `chore`, or `docs`.
 
 ### Native command by platform
 
@@ -91,7 +91,7 @@ Human Handoff remains mandatory and is performed by a human in GitLab.
 Provide the task brief below when invoking the native command:
 
 ```md
-Task type: <feat|change-request|bug|chore>
+Task type: <feat|change-request|bug|chore|docs>
 Task title: <short title>
 Context: <business/technical context>
 Expected result: <what should be true after delivery>

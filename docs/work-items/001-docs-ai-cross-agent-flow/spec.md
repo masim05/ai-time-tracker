@@ -2,7 +2,7 @@
 
 ## Goal
 
-Define a single, AI-agnostic development flow for `feat`, `change-request`, `bug`, and `chore` that works with Copilot, Codex, and Claude.
+Define a single, AI-agnostic development flow for `feat`, `change-request`, `bug`, `chore`, and `docs` that works with Copilot, Codex, and Claude.
 
 ## Requirements
 

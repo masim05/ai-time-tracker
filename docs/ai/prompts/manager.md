@@ -8,7 +8,7 @@ Role scope:
 Input template:
 
 ```md
-Task type: <feat|change-request|bug|chore>
+Task type: <feat|change-request|bug|chore|docs>
 Task title: <short title>
 Context: <business/technical context>
 Expected result: <target outcome>
