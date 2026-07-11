@@ -1,37 +1,5 @@
 # project-template
 
-This repository is an AI-friendly project template for teams working in GitLab with multiple coding assistants.
-
-## What this repository defines
-
-- `AGENTS.md` is the common entrypoint for AI assistants.
-- `docs/architecture/project-structure.md` defines the repository structure.
-- `docs/engineering/definition-of-done/` defines task completion criteria.
-- `docs/engineering/ai-development-flow.md` defines the single source-of-truth AI manager/developer/reviewer flow.
-- `docs/ai/` stores role wrappers (prompts/skills/agents) that reference the single source-of-truth flow.
-- `docs/engineering/testing-policy.md` defines testing and task-type change rules.
-- `docs/work-items/` stores non-trivial work items and their artifacts.
-- `.gitlab-ci.yml` runs repository policy checks in GitLab CI.
-- `tmp/wts/` is the only allowed location for task worktrees used for actual implementation work.
-
-## Start here
-
-1. Read `AGENTS.md` if you are setting up or guiding an AI assistant.
-2. Read `docs/architecture/project-structure.md`.
-3. Read `docs/engineering/testing-policy.md`.
-4. If using AI role workflow, read `docs/engineering/ai-development-flow.md`.
-5. Read the relevant Definition of Done under `docs/engineering/definition-of-done/`.
-6. Create a dedicated git worktree under `tmp/wts/<task-slug>/` before making any implementation changes.
-7. Create or update a task work item under `docs/work-items/` when required.
-8. Run the local CI-equivalent checks before every push.
-9. After every push, verify that GitLab CI for the pushed commit is green.
-
-## Workflow model
-
-- GitLab is the source-of-truth platform for repository hosting, issues, merge requests, and CI.
-- GitHub Copilot, Claude, and Codex may be used as assistants, but all of them must follow the same repository rules.
-- All implementation work must happen in dedicated git worktrees under `tmp/wts/`; the primary checkout is not a valid workspace for task execution.
-
 ## AI Flow: Required Setup
 
 Minimum setup for Copilot, Codex, and Claude:
@@ -115,6 +83,38 @@ After AI loop completion, a human must add a GitLab comment in Russian with:
 - human joined the process;
 - current status (`approved` or `requires changes`);
 - next action if changes are required.
+
+This repository is an AI-friendly project template for teams working in GitLab with multiple coding assistants.
+
+## What this repository defines
+
+- `AGENTS.md` is the common entrypoint for AI assistants.
+- `docs/architecture/project-structure.md` defines the repository structure.
+- `docs/engineering/definition-of-done/` defines task completion criteria.
+- `docs/engineering/ai-development-flow.md` defines the single source-of-truth AI manager/developer/reviewer flow.
+- `docs/ai/` stores role wrappers (prompts/skills/agents) that reference the single source-of-truth flow.
+- `docs/engineering/testing-policy.md` defines testing and task-type change rules.
+- `docs/work-items/` stores non-trivial work items and their artifacts.
+- `.gitlab-ci.yml` runs repository policy checks in GitLab CI.
+- `tmp/wts/` is the only allowed location for task worktrees used for actual implementation work.
+
+## Start here
+
+1. Read `AGENTS.md` if you are setting up or guiding an AI assistant.
+2. Read `docs/architecture/project-structure.md`.
+3. Read `docs/engineering/testing-policy.md`.
+4. If using AI role workflow, read `docs/engineering/ai-development-flow.md`.
+5. Read the relevant Definition of Done under `docs/engineering/definition-of-done/`.
+6. Create a dedicated git worktree under `tmp/wts/<task-slug>/` before making any implementation changes.
+7. Create or update a task work item under `docs/work-items/` when required.
+8. Run the local CI-equivalent checks before every push.
+9. After every push, verify that GitLab CI for the pushed commit is green.
+
+## Workflow model
+
+- GitLab is the source-of-truth platform for repository hosting, issues, merge requests, and CI.
+- GitHub Copilot, Claude, and Codex may be used as assistants, but all of them must follow the same repository rules.
+- All implementation work must happen in dedicated git worktrees under `tmp/wts/`; the primary checkout is not a valid workspace for task execution.
 
 ## Validation Before Push
 
