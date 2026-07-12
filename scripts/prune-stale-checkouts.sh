@@ -22,7 +22,7 @@ if [[ -n "$origin_head" ]]; then
   default_branch="${origin_head#origin/}"
 fi
 
-declare -A worktree_by_branch=()
+worktree_lookup=""
 worktree_path=""
 
 while IFS= read -r line; do
@@ -32,10 +32,22 @@ while IFS= read -r line; do
       ;;
     branch\ refs/heads/*)
       branch_name="${line#branch refs/heads/}"
-      worktree_by_branch["$branch_name"]="$worktree_path"
+      worktree_lookup+="$branch_name"$'\t'"$worktree_path"$'\n'
       ;;
   esac
 done < <(git worktree list --porcelain)
+
+worktree_for_branch() {
+  lookup_branch="$1"
+  while IFS=$'\t' read -r map_branch map_path; do
+    if [[ "$map_branch" == "$lookup_branch" ]]; then
+      printf '%s\n' "$map_path"
+      return 0
+    fi
+  done <<<"$worktree_lookup"
+
+  return 1
+}
 
 is_protected_branch() {
   case "$1" in
@@ -77,7 +89,7 @@ while IFS= read -r branch_name; do
     continue
   fi
 
-  worktree_path="${worktree_by_branch[$branch_name]:-}"
+  worktree_path="$(worktree_for_branch "$branch_name" || true)"
   if [[ -n "$worktree_path" && "$worktree_path" != "$repo_root" ]]; then
     printf 'Removing worktree: %s (%s)\n' "$worktree_path" "$branch_name"
     git worktree remove "$worktree_path"
