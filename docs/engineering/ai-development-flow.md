@@ -78,18 +78,16 @@ docs/work-items/NNN-<type>-<short-slug>/
 Required artifacts for this flow:
 - `spec.md`
 - `plan.md`
-- `test-plan.md`
-- `e2e-scenarios.md` (for user/system-critical or happy-path-visible flows; if omitted for low-risk `chore`, add explicit justification in `test-plan.md`)
 - `artifacts/` (evidence directory for logs/screenshots/recordings)
 
-Artifact content must be enough for implementation and review, including explicit happy-path scenarios.
+Artifact content must be enough for implementation and review.
 
 ## Step 2: AI Developer Implementation And MR
 
 AI Developer must:
 - follow `AGENTS.md` and all referenced project rules;
 - continue from the worktree created or reused in Step 1;
-- keep task-type boundaries from `docs/engineering/testing-policy.md`;
+- keep task-type boundaries from `docs/engineering/change-policy.md`;
 - update documentation when required;
 - use the resolved GitLab communication language for merge request text, comments, and replies;
 - push changes and create/update the MR in GitLab with verification details.

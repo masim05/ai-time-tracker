@@ -19,7 +19,6 @@ A task is done only when:
 - The implementation follows the project architecture and boundaries.
 - When the workflow or task required isolated execution, the work was carried out from the dedicated git worktree under `tmp/wts/` rather than from the primary checkout.
 - The change is limited to the stated scope.
-- The relevant tests are added or the absence of tests is explicitly justified.
 - The local CI-equivalent checks were run before push.
 - The pushed commit's GitLab CI is green.
 - No unrelated refactoring, formatting, or behavior changes are included.

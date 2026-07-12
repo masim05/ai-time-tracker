@@ -65,6 +65,7 @@ repo/
 
     engineering/
       ai-development-flow.md
+      change-policy.md
       definition-of-done/
         README.md
         feature.md
@@ -80,7 +81,6 @@ repo/
 
   src/
     ...
-    # unit and component tests live next to the code they test
 
   tests/
     integration/
@@ -138,33 +138,6 @@ A work item directory is optional for:
 - mechanical cleanup;
 - simple dependency bumps;
 - small docs edits.
-
-## Testing layout
-
-Unit and component tests must live next to the code they test.
-
-Examples:
-
-```txt
-src/billing/invoice.ts
-src/billing/invoice.test.ts
-src/users/user-card.tsx
-src/users/user-card.test.tsx
-```
-
-Integration tests live in:
-
-```txt
-tests/integration/
-```
-
-E2E tests live in:
-
-```txt
-tests/e2e/
-```
-
-There must be no centralized `tests/unit/` or `tests/component/` directory.
 
 ## Worktree Policy
 

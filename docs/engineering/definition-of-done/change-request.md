@@ -8,12 +8,6 @@ A change request is done only when:
 - The implementation plan exists or is included in the work item.
 - Architecture impact is described, including affected modules, boundaries, and dependencies.
 - The implementation follows the project architecture and does not introduce unauthorized dependencies or shortcuts.
-- Existing tests are updated only where the behavior contract intentionally changes.
-- New tests are added when they are needed to cover the changed behavior clearly.
-- Tests outside the changed behavior contract are not weakened or rewritten without justification.
-- Integration tests cover important changed interactions between modules when applicable.
-- E2E scenarios are updated when the changed behavior affects user-visible flows.
-- E2E tests are updated or added when the flow is critical, high-risk, or explicitly required by the testing policy.
 - Edge cases and error states are considered.
 - Security, privacy, performance, and observability implications are checked where relevant.
 - User-facing documentation is updated when behavior changes.
@@ -24,6 +18,4 @@ A change request is done only when:
 
 The merge request must not be approved until these issues are resolved:
 
-- Tests were changed outside the behavior contract that intentionally changed.
-- Existing tests were weakened instead of being updated to the new contract.
 - The change is actually additive-only and should be reclassified as `feature`.

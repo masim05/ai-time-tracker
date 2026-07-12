@@ -20,8 +20,6 @@ Recommended files inside a work item directory:
 
 - `spec.md`
 - `plan.md`
-- `test-plan.md`
-- `e2e-scenarios.md`
 - `artifacts/`
 
 Use `artifacts/` for screenshots, recordings, logs, or other evidence that helps verify the work.

@@ -62,18 +62,19 @@ All platform entry points follow `docs/engineering/ai-development-flow.md`, the 
 - `.ai-flow.yml`: optional repository settings for the AI flow; the checked-in template sets GitLab communication to English and Git CLI to `glab`.
 - `AGENTS.md`: entrypoint and operating contract for AI assistants.
 - `docs/architecture/`: project structure, boundaries, principles, and decisions.
-- `docs/engineering/testing-policy.md`: test placement and task-type change rules.
+- `docs/engineering/change-policy.md`: task-type change boundaries and review-blocking rules.
+- `docs/engineering/testing-policy.md`: purpose-only placeholder for project-specific testing policy.
 - `docs/engineering/definition-of-done/`: common and task-specific completion criteria.
 - `docs/engineering/ai-development-flow.md`: source of truth for the Manager, Developer, and Reviewer flow.
 - `docs/ai/`: platform and role wrappers for the AI development flow.
-- `docs/work-items/`: specifications, plans, test plans, and delivery evidence for non-trivial work.
+- `docs/work-items/`: specifications, plans, and delivery evidence for non-trivial work.
 
 ## Contributor Workflow
 
 GitLab is the source of truth for issues, merge requests, discussions, and CI.
 
 1. Classify the task as `feat`, `change-request`, `bug`, `chore`, or `docs`.
-2. Read the relevant architecture, testing, and Definition of Done documents from the repository guide.
+2. Read the relevant architecture, change policy, and Definition of Done documents from the repository guide.
 3. If the workflow or task explicitly requires isolated execution, create or reuse a dedicated worktree under `tmp/wts/<task-slug>/` before implementation. `ai-development-flow` always does this automatically after clarification.
 4. Create or update a work item under `docs/work-items/` when required, then implement the scoped change with its tests and documentation.
 5. Run the validation commands below before every push, then verify that GitLab CI is green.
