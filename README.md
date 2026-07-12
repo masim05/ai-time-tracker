@@ -2,33 +2,28 @@
 
 This repository is an AI-friendly project template for teams working in GitLab with multiple coding assistants.
 
-## AI Flow: Quick Start
+## AI Flow: Required Setup
 
 ### 1. Install dependencies
 
-To use this flow, install and configure one of the following AI agents, plus the `glab` CLI:
+To use this flow, install and configure one of the following AI agents, plus one supported Git platform CLI (`glab` or `gh`):
 
 - GitHub Copilot
 - Claude Code
 - Codex
-- `glab` CLI, used for GitLab comments and merge requests
+- `glab` CLI or `gh` CLI, used for Git platform comments and merge requests
 
-### 2. Run the flow
+Set the Git CLI with `git.cli` in `.ai-flow.yml`. It defaults to `glab` when the file or setting is absent.
 
-1. GitHub Copilot in VS Code:
-	- run `/ai-development-flow <task brief>` in chat.
-	- entry point: `.github/prompts/ai-development-flow.prompt.md`.
+## AI Flow: How To Run
 
-2. Claude Code:
-	- run `/ai-development-flow <task brief>` in Claude session from repository root.
-	- entry point: `.claude/skills/ai-development-flow/SKILL.md`.
+### 1. Run the flow
 
-3. Codex (CLI/IDE/App):
-	- run `$ai-development-flow <task brief>`.
-	- if needed, use `/skills` and select `ai-development-flow`.
-	- entry point: `.agents/skills/ai-development-flow/SKILL.md`.
+1. GitHub Copilot in VS Code: run `/ai-development-flow <task brief>` in chat. Entry point: `.github/prompts/ai-development-flow.prompt.md`.
+2. Claude Code: run `/ai-development-flow <task brief>` in a Claude session from repository root. Entry point: `.claude/skills/ai-development-flow/SKILL.md`.
+3. Codex (CLI/IDE/App): run `$ai-development-flow <task brief>` (or use `/skills` and select `ai-development-flow`). Entry point: `.agents/skills/ai-development-flow/SKILL.md`.
 
-### 3. Provide the task brief
+### 2. Provide the task brief
 
 Use this template with the command:
 
@@ -42,16 +37,17 @@ Out of scope: <what must not be changed>
 Links: <issue, docs, related MR>
 ```
 
-### What happens next
+### 3. What happens next
 
 - AI Manager asks clarification questions labeled `[REQ]` or `[TECH]`.
 - AI Developer implements the task and creates or updates the merge request.
 - AI Reviewer reviews the changes and starts a fix-review loop when needed, up to 5 iterations.
 - On success, the flow returns the merge request reference and `ready for Human Handoff` status.
 
-### Human handoff
+### 4. Human handoff
 
 After the AI flow completes, a human must add a GitLab comment in the configured communication language with:
+
 - human joined the process;
 - current status (`approved` or `requires changes`);
 - next action if changes are required.
@@ -62,7 +58,7 @@ All platform entry points follow `docs/engineering/ai-development-flow.md`, the 
 
 ## Repository Guide
 
-- `.ai-flow.yml`: optional repository settings for the AI flow; the checked-in template sets GitLab communication to English.
+- `.ai-flow.yml`: optional repository settings for the AI flow; the checked-in template sets GitLab communication to English and Git CLI to `glab`.
 - `AGENTS.md`: entrypoint and operating contract for AI assistants.
 - `docs/architecture/`: project structure, boundaries, principles, and decisions.
 - `docs/engineering/testing-policy.md`: test placement and task-type change rules.

@@ -12,13 +12,17 @@ Important:
 
 ## Configuration
 
-Before creating or updating GitLab content, resolve the communication language from the repository root:
+Before creating or updating GitLab content, resolve configuration from the repository root:
 
 1. Read `gitlab.language` from `.ai-flow.yml` when the file and setting are present.
 2. Otherwise, use `en`.
-3. If the configuration exists but fails `scripts/check-ai-flow-config.sh`, stop and report the validation error instead of guessing a language.
+3. Read `git.cli` from `.ai-flow.yml` when the file and setting are present.
+4. Otherwise, use `glab`.
+5. If the configuration exists but fails `scripts/check-ai-flow-config.sh`, stop and report the validation error instead of guessing values.
 
 The resolved GitLab communication language applies to merge request titles and descriptions, AI comments, review findings, replies, completion comments, and human handoff guidance. It does not control agent chat responses, source code, work-item artifacts, or general repository documentation.
+
+The resolved Git CLI applies to Git platform operations executed by the AI flow (for example MR and comment operations) and must be one of `glab` or `gh`.
 
 ## Roles
 

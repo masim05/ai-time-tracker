@@ -1,4 +1,7 @@
 version: 1
 
+git:
+  cli: glab
+
 gitlab:
   language: en
