@@ -4,6 +4,16 @@ This repository is an AI-friendly project template for teams working in GitLab w
 
 ## AI Flow: Required Setup
 
+### Project Setup Required
+
+This template is intentionally generic and does not include a project-specific architecture or testing policy.
+
+Before implementing the first feature:
+
+1. Define and document your project architecture in `docs/architecture/`.
+2. Define and document your project testing policy in `docs/engineering/testing-policy.md`.
+3. Delete this section after both documents are in place.
+
 ### 1. Install dependencies
 
 To use this flow, install and configure one of the following AI agents, plus one supported Git platform CLI (`glab` or `gh`):
