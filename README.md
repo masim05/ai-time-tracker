@@ -71,7 +71,7 @@ All platform entry points follow `docs/engineering/ai-development-flow.md`, the 
 
 ## Contributor Workflow
 
-GitLab is the source of truth for issues, merge requests, discussions, and CI.
+The configured Git platform is the source of truth for issues, merge/pull requests, discussions, and CI (`git.cli: glab` => GitLab, `git.cli: gh` => GitHub).
 
 1. Classify the task as `feat`, `change-request`, `bug`, `chore`, or `docs`.
 2. Read the relevant architecture, change policy, and Definition of Done documents from the repository guide.

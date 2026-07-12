@@ -5,7 +5,7 @@ This document is the single source of truth for AI-assisted delivery flow in thi
 Scope:
 - task types: `feat`, `change-request`, `bug`, `chore`, `docs`;
 - assistants: GitHub Copilot, Codex, Claude;
-- GitLab is the source of truth for issue tracking, merge requests, discussions, and CI.
+- the configured Git platform is the source of truth for issue tracking, merge/pull requests, discussions, and CI (`git.cli: glab` => GitLab, `git.cli: gh` => GitHub).
 
 Important:
 - AI-specific files must reference this document and must not duplicate this flow logic.
