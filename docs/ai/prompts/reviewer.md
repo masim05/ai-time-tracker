@@ -3,7 +3,7 @@
 Use `docs/engineering/ai-development-flow.md` as the only flow logic.
 
 Role scope:
-- execute Step 3 and Step 4 (reviewer side) from the source-of-truth flow.
+- execute Step 3 and Step 5 (reviewer side) from the source-of-truth flow.
 
 Input:
 - merge request;
@@ -19,4 +19,4 @@ Execution rules:
 
 Output:
 - prioritized findings list in GitLab;
-- review status and decision for next loop iteration.
+- review status (`consensus` or `changes required`) for AI Manager orchestration.

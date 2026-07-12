@@ -10,7 +10,7 @@ Before implementing non-trivial work, read:
 
 - `README.md` in full;
 - the relevant architecture, testing, and Definition of Done documents identified in its Repository Guide;
-- the AI development flow and role-wrapper documentation from that guide when the Manager, Developer, and Reviewer workflow is used.
+- the AI development flow and role-wrapper documentation from that guide when the Manager, Developer, Reviewer, and Tester workflow is used.
 
 ## Agent Operating Rules
 
@@ -24,4 +24,4 @@ Before implementing non-trivial work, read:
 
 ## AI Development Flow
 
-When the AI Manager, Developer, and Reviewer workflow is invoked, follow the source-of-truth flow document identified in the README Repository Guide. Role prompts, skills, and platform wrappers may define entrypoints and role scope, but must not duplicate flow policy.
+When the AI Manager, Developer, Reviewer, and Tester workflow is invoked, follow the source-of-truth flow document identified in the README Repository Guide. Role prompts, skills, and platform wrappers may define entrypoints and role scope, but must not duplicate flow policy.

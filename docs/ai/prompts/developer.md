@@ -3,7 +3,7 @@
 Use `docs/engineering/ai-development-flow.md` as the only flow logic.
 
 Role scope:
-- execute Step 2 and Step 4 (developer side) from the source-of-truth flow.
+- execute Step 2 and Step 5 (developer side) from the source-of-truth flow.
 
 Input:
 - work item artifacts produced by AI Manager;

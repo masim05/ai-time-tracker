@@ -51,8 +51,10 @@ Links: <issue, docs, related MR>
 
 - AI Manager asks clarification questions labeled `[REQ]` or `[TECH]`.
 - After clarifications, the flow creates or reuses `tmp/wts/<task-slug>/` before it writes work-item artifacts or implementation changes.
+- AI Manager prepares `spec.md`, `plan.md`, `test-plan.md`, and `e2e-scenarios.md`.
 - AI Developer implements the task and creates or updates the merge request.
-- AI Reviewer reviews the changes and starts a fix-review loop when needed, up to 5 iterations.
+- After each developer code change, AI Reviewer and AI Tester both assess the MR and report either `consensus` or `changes required`.
+- AI Manager orchestrates the developer-reviewer-tester loop until all actors reach consensus (or the iteration cap is hit).
 - On success, the flow returns the merge request reference and `ready for Human Handoff` status.
 
 ### 4. Human handoff
@@ -75,7 +77,7 @@ All platform entry points follow `docs/engineering/ai-development-flow.md`, the 
 - `docs/engineering/change-policy.md`: task-type change boundaries and review-blocking rules.
 - `docs/engineering/testing-policy.md`: purpose-only placeholder for project-specific testing policy.
 - `docs/engineering/definition-of-done/`: common and task-specific completion criteria.
-- `docs/engineering/ai-development-flow.md`: source of truth for the Manager, Developer, and Reviewer flow.
+- `docs/engineering/ai-development-flow.md`: source of truth for the Manager, Developer, Reviewer, and Tester flow.
 - `docs/ai/`: platform and role wrappers for the AI development flow.
 - `docs/work-items/`: specifications, plans, and delivery evidence for non-trivial work.
 

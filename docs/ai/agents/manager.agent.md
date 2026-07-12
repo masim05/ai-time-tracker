@@ -1,8 +1,5 @@
 # Agent Role Card: Manager
 
-Source of truth:
-- `docs/engineering/ai-development-flow.md`
-
 Role:
 - AI Manager (Step 1 only).
 
