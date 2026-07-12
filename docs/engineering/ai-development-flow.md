@@ -61,6 +61,14 @@ Question format requirements:
   - `[TECH]` for technical/implementation clarifications.
 - questions can be asked in small batches or one-by-one, but each question must keep the label.
 
+When clarifications are complete, the flow must create or reuse a dedicated task worktree before writing any work-item artifacts or implementation changes:
+
+```txt
+tmp/wts/<task-slug>/
+```
+
+The primary checkout must not be used for artifacts or implementation created by an `ai-development-flow` run.
+
 After clarifications, AI Manager must create or update a work item directory:
 
 ```txt
@@ -80,7 +88,7 @@ Artifact content must be enough for implementation and review, including explici
 
 AI Developer must:
 - follow `AGENTS.md` and all referenced project rules;
-- implement only in a dedicated worktree under `tmp/wts/<task-slug>/`;
+- continue from the worktree created or reused in Step 1;
 - keep task-type boundaries from `docs/engineering/testing-policy.md`;
 - update documentation when required;
 - use the resolved GitLab communication language for merge request text, comments, and replies;

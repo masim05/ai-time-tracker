@@ -17,7 +17,7 @@ A task is done only when:
 - The task type is explicit: `feature`, `change-request`, `bugfix`, `chore`, or `docs`.
 - The change is understandable from the issue, work item, or merge request description.
 - The implementation follows the project architecture and boundaries.
-- The work was carried out from a dedicated git worktree under `tmp/wts/`, not from the primary checkout.
+- When the workflow or task required isolated execution, the work was carried out from the dedicated git worktree under `tmp/wts/` rather than from the primary checkout.
 - The change is limited to the stated scope.
 - The relevant tests are added or the absence of tests is explicitly justified.
 - The local CI-equivalent checks were run before push.
