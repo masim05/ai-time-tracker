@@ -168,7 +168,7 @@ There must be no centralized `tests/unit/` or `tests/component/` directory.
 
 ## Worktree Policy
 
-All implementation work must happen in dedicated git worktrees under:
+`ai-development-flow` work must happen in dedicated git worktrees under:
 
 ```txt
 tmp/wts/<task-slug>/
@@ -176,7 +176,8 @@ tmp/wts/<task-slug>/
 
 Rules:
 
-- The primary checkout of the repository must not be used for task implementation.
-- Each active task gets its own dedicated worktree.
+- `ai-development-flow` creates or reuses the task worktree before writing work-item artifacts or implementation changes.
+- The primary checkout of the repository must not be used for artifacts or implementation produced by an `ai-development-flow` run.
+- Outside `ai-development-flow`, use dedicated worktrees when the task or requester explicitly requires isolated execution.
 - Parallel work by humans and multiple AI assistants must use separate worktrees.
 - Worktree paths under `tmp/wts/` are local working areas and must not become the source of truth for durable project documentation.

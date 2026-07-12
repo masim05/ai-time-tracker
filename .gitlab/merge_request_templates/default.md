@@ -18,7 +18,7 @@
 
 - [ ] Common DoD checked
 - [ ] Task-specific DoD checked
-- [ ] Work was performed from a dedicated git worktree under `tmp/wts/`
+- [ ] If the workflow or task required isolated execution, work was performed from a dedicated git worktree under `tmp/wts/`
 - [ ] I ran the local CI-equivalent checks before push
 - [ ] GitLab CI is green for the pushed commit
 

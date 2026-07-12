@@ -40,6 +40,7 @@ Links: <issue, docs, related MR>
 ### 3. What happens next
 
 - AI Manager asks clarification questions labeled `[REQ]` or `[TECH]`.
+- After clarifications, the flow creates or reuses `tmp/wts/<task-slug>/` before it writes work-item artifacts or implementation changes.
 - AI Developer implements the task and creates or updates the merge request.
 - AI Reviewer reviews the changes and starts a fix-review loop when needed, up to 5 iterations.
 - On success, the flow returns the merge request reference and `ready for Human Handoff` status.
@@ -73,7 +74,7 @@ GitLab is the source of truth for issues, merge requests, discussions, and CI.
 
 1. Classify the task as `feat`, `change-request`, `bug`, `chore`, or `docs`.
 2. Read the relevant architecture, testing, and Definition of Done documents from the repository guide.
-3. Create a dedicated worktree under `tmp/wts/<task-slug>/`; do not implement from the primary checkout.
+3. If the workflow or task explicitly requires isolated execution, create or reuse a dedicated worktree under `tmp/wts/<task-slug>/` before implementation. `ai-development-flow` always does this automatically after clarification.
 4. Create or update a work item under `docs/work-items/` when required, then implement the scoped change with its tests and documentation.
 5. Run the validation commands below before every push, then verify that GitLab CI is green.
 
