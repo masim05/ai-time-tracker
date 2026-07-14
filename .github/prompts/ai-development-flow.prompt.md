@@ -14,6 +14,11 @@ Input task brief:
 ${input:task_brief:Task type, title, context, expected result, constraints, out of scope, links}
 
 Execution rules are defined in [ai-development-flow](../../docs/engineering/ai-development-flow.md).
+Worktree, autonomy, and terminal-state rules are mandatory per:
+- `Worktree Gate (Mandatory)`
+- `Autonomy Contract (Required)`
+- `Blocked State Policy (Mandatory)`
+- `Orchestrated Completion Signal`
 
 User context:
 $task_brief

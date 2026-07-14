@@ -72,6 +72,33 @@ Out of scope: <what must not be changed>
 Links: <issue, docs, related MR>
 ```
 
+## Worktree Gate (Mandatory)
+
+When `ai-development-flow` is invoked, the first required operational action is to create or reuse a dedicated task worktree:
+
+```txt
+tmp/wts/<task-slug>/
+```
+
+Rules:
+
+- This gate is mandatory for every `ai-development-flow` run.
+- The primary checkout must not be used for flow artifacts or implementation.
+- The flow must not proceed to artifact writing or implementation until the worktree is ready.
+- If worktree creation/reuse fails, terminate with `blocked` and report details using the blocked-state policy.
+
+## Autonomy Contract (Required)
+
+After clarification is complete, execution is autonomous and must not pause for intermediate user confirmation.
+
+Required behavior:
+
+- AI Manager must immediately continue orchestration through Developer, Reviewer, and Tester steps.
+- Do not ask "continue?" or equivalent prompts between flow stages.
+- Continue until one terminal state is reached:
+  - `ready for Human Handoff`, or
+  - `blocked`.
+
 ## Step 1: AI Manager Clarification And Artifacts
 
 AI Manager must ask clarifying questions before implementation.
@@ -82,13 +109,7 @@ Question format requirements:
   - `[TECH]` for technical/implementation clarifications.
 - questions can be asked in small batches or one-by-one, but each question must keep the label.
 
-When clarifications are complete, the flow must create or reuse a dedicated task worktree before writing any work-item artifacts or implementation changes:
-
-```txt
-tmp/wts/<task-slug>/
-```
-
-The primary checkout must not be used for artifacts or implementation created by an `ai-development-flow` run.
+The worktree gate from `Worktree Gate (Mandatory)` applies to this step and all following steps.
 
 After clarifications, AI Manager must create or update a work item directory:
 
@@ -118,7 +139,7 @@ Step output:
 Step DoD (verifiable):
 - artifacts are complete, internally consistent, and testable;
 - implementation and testing can start without unresolved ambiguity;
-- AI Manager emits handoff package to AI Developer.
+- AI Manager emits handoff package to AI Developer and immediately starts Step 2 without waiting for another user prompt.
 
 ## Step 2: AI Developer Implementation And MR
 
@@ -217,6 +238,17 @@ Loop policy:
 - stop earlier if there are no new unresolved critical/major findings and all three actors have `consensus`.
 - if iteration limit is reached without full consensus, stop and report blocked status with outstanding findings.
 
+## Blocked State Policy (Mandatory)
+
+If the flow cannot complete due to environment, tooling, access, or policy constraints, the orchestrator must end in `blocked` and provide:
+
+- the exact failed step;
+- blocker details with observed error/symptom;
+- what is already completed;
+- what is required to resume from the blocked point.
+
+Missing Git platform access (for example unavailable or unauthenticated `glab`/`gh`) is not a reason to pause silently; it must produce explicit `blocked` output.
+
 ## Step 6: Human Handoff (Mandatory)
 
 After AI loop ends with full actor consensus, human participation is mandatory and must be recorded as a GitLab comment in the resolved communication language.
@@ -228,10 +260,15 @@ Minimum handoff comment meaning:
 
 ## Orchestrated Completion Signal
 
-When AI Manager, AI Developer, AI Reviewer, and AI Tester complete successfully, the orchestrator must post a final user-facing summary that includes:
-- merge request link/reference;
-- short verification summary;
-- explicit `ready for Human Handoff` status.
+The orchestrator must finish with exactly one terminal state:
+
+- `ready for Human Handoff` when AI Manager, AI Developer, AI Reviewer, and AI Tester complete successfully;
+- `blocked` when mandatory flow completion is impossible.
+
+Terminal output requirements:
+
+- For `ready for Human Handoff`, include merge request link/reference and short verification summary.
+- For `blocked`, include blocked-state details from the blocked state policy section.
 
 ## Completion Checklist
 

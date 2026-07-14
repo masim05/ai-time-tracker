@@ -10,6 +10,12 @@ Rule:
 - update flow rules only in the single source-of-truth document;
 - role files may define only role scope, inputs, and outputs, then reference the source-of-truth sections.
 
+Required flow references for wrappers:
+- `Worktree Gate (Mandatory)` in `docs/engineering/ai-development-flow.md`;
+- `Autonomy Contract (Required)` in `docs/engineering/ai-development-flow.md`;
+- `Blocked State Policy (Mandatory)` in `docs/engineering/ai-development-flow.md`;
+- `Orchestrated Completion Signal` terminal states.
+
 Practical guidance:
 - keep normative flow policy in `docs/engineering/ai-development-flow.md`;
 - keep role-specific execution notes/checklists in role wrappers when they do not alter policy.
