@@ -37,7 +37,7 @@ export interface ColumnSpec {
   readonly accessor: (row: ReportRow) => CellValue;
 }
 
-/** The full catalog of 14 columns, in canonical display order. */
+/** The full catalog of 16 columns, in canonical display order. */
 export const COLUMNS: readonly ColumnSpec[] = [
   {
     id: 'launch',

@@ -43,7 +43,7 @@ time defaults to `00:00:00`; a missing timezone uses local time; a
 DST-ambiguous local time without an offset is rejected.
 
 Default columns: `launch, agent, path, human, agent-time, elapsed, start,
-end`. Run `npm run cli -- report --help` for the full 14-column catalog.
+duration, subagents`. Run `npm run cli -- report --help` for the full 16-column catalog.
 
 Exit codes: `0` success, `1` partial failure (some sources unreadable), `2`
 invalid usage.
