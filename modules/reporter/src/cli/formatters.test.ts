@@ -57,6 +57,11 @@ describe('TableFormatter', () => {
     expect(lines[1]).toContain('2026-08-01 17:01:46');
     // header/value columns aligned to the same width
     expect(lines[0].indexOf('agent')).toBeGreaterThanOrEqual(0);
+    // separator and total row appended
+    expect(lines[2]).toMatch(/^-+/);
+    expect(lines[3]).toContain('total');
+    expect(lines[3]).toContain('10h3m'); // agent-time sum
+    expect(lines[3]).toContain('0'); // subagents sum
   });
 
   it('renders unknown for null paths and empty for active end', () => {
@@ -66,6 +71,29 @@ describe('TableFormatter', () => {
     );
     const out = new TableFormatter().format(report);
     expect(out).toContain('unknown');
+  });
+
+  it('omits separator and total row when there are no data rows', () => {
+    const report = ColumnProjector.project([], DEFAULT_IDS);
+    const out = new TableFormatter().format(report);
+    const lines = out.split('\n');
+    expect(lines).toHaveLength(1); // header only
+    expect(lines[0]).toContain('launch');
+  });
+
+  it('sums duration and numeric text columns in the total row', () => {
+    const report = ColumnProjector.project(
+      [row({ humanMs: 2 * MIN, subagentCount: 3 }), row({ humanMs: 4 * MIN, subagentCount: 7 })],
+      ['launch', 'human', 'subagents'],
+    );
+    const out = new TableFormatter().format(report);
+    const lines = out.split('\n');
+    // header, 2 data rows, separator, total
+    expect(lines).toHaveLength(5);
+    const totalLine = lines[4];
+    expect(totalLine).toContain('total');
+    expect(totalLine).toContain('6m'); // 2+4 minutes
+    expect(totalLine).toContain('10'); // 3+7 subagents
   });
 });
 

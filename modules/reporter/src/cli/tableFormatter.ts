@@ -20,12 +20,14 @@ export class TableFormatter {
     const body = rows.map((row) =>
       row.map((value, i) => this.renderCell(columns[i], value)),
     );
+    const totalRow = this.buildTotalRow(columns, rows);
 
     const widths = columns.map((_c, i) => {
       let w = headers[i].length;
       for (const row of body) {
         w = Math.max(w, row[i].length);
       }
+      w = Math.max(w, totalRow[i].length);
       return w;
     });
 
@@ -35,7 +37,46 @@ export class TableFormatter {
     for (const row of body) {
       lines.push(this.renderRow(row, widths, rightAlign));
     }
+    if (rows.length > 0) {
+      lines.push(widths.map((w) => '-'.repeat(w)).join('  '));
+      lines.push(this.renderRow(totalRow, widths, rightAlign));
+    }
     return lines.join('\n');
+  }
+
+  private buildTotalRow(
+    columns: readonly ColumnSpec[],
+    rows: readonly CellValue[][],
+  ): string[] {
+    let firstTextDone = false;
+    return columns.map((col, i) => {
+      if (col.kind === 'duration') {
+        const sum = rows.reduce(
+          (acc, row) => acc + Number(row[i] ?? 0),
+          0,
+        );
+        return formatDuration(sum);
+      }
+      if (col.kind === 'text') {
+        if (!firstTextDone) {
+          firstTextDone = true;
+          return 'total';
+        }
+        // sum if all non-null values are numeric
+        const allNumeric = rows.every(
+          (row) => row[i] === null || !isNaN(Number(row[i])),
+        );
+        if (allNumeric) {
+          const sum = rows.reduce(
+            (acc, row) => acc + (row[i] === null ? 0 : Number(row[i])),
+            0,
+          );
+          return String(sum);
+        }
+        return '';
+      }
+      return '';
+    });
   }
 
   private renderRow(
