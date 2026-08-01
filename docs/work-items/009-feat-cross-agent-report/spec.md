@@ -89,11 +89,11 @@ Exact: `codex-cli`, `codex-app`, `copilot-cli`
 Family: `codex`, `copilot`
 
 ### Default columns (in order)
-`launch`, `agent`, `path`, `human`, `agent-time`, `elapsed`, `start`, `end`
+`launch`, `agent`, `path`, `human`, `agent-time`, `start`, `duration`, `subagents`
 
 ### Full column catalog
-`launch`, `launch-id`, `agent`, `path`, `human`, `agent-time`, `elapsed`, `inactive`,
-`start`, `end`, `actual-start`, `actual-end`, `truncated`, `active`
+`launch`, `launch-id`, `agent`, `path`, `human`, `agent-time`, `elapsed`, `duration`,
+`inactive`, `start`, `end`, `actual-start`, `actual-end`, `truncated`, `active`, `subagents`
 
 ### Exit codes
 | Code | Meaning |

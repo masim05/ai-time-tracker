@@ -169,7 +169,6 @@ export const DEFAULT_COLUMN_IDS: readonly ColumnId[] = [
   'path',
   'human',
   'agent-time',
-  'elapsed',
   'start',
   'duration',
   'subagents',

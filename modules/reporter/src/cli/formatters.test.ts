@@ -39,7 +39,6 @@ const DEFAULT_IDS: ColumnId[] = [
   'path',
   'human',
   'agent-time',
-  'elapsed',
   'start',
   'duration',
   'subagents',
@@ -127,7 +126,7 @@ describe('CsvFormatter', () => {
   it('emits a header plus rows with the same conventions', () => {
     const report = ColumnProjector.project([row({})], DEFAULT_IDS);
     const lines = new CsvFormatter().format(report).split('\n');
-    expect(lines[0]).toBe('launch,agent,path,human,agent-time,elapsed,start,duration,subagents');
+    expect(lines[0]).toBe('launch,agent,path,human,agent-time,start,duration,subagents');
     expect(lines[1]).toContain('603');
     expect(lines[1]).toContain('2026-08-01T17:01:46+00:00');
   });
@@ -135,7 +134,7 @@ describe('CsvFormatter', () => {
   it('emits the header only for an empty result', () => {
     const report = ColumnProjector.project([], DEFAULT_IDS);
     expect(new CsvFormatter().format(report)).toBe(
-      'launch,agent,path,human,agent-time,elapsed,start,duration,subagents',
+      'launch,agent,path,human,agent-time,start,duration,subagents',
     );
   });
 

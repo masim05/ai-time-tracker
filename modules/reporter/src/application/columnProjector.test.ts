@@ -33,7 +33,6 @@ describe('ColumnProjector.resolveColumns', () => {
       'path',
       'human',
       'agent-time',
-      'elapsed',
       'duration',
       'subagents',
       'inactive',

@@ -241,7 +241,7 @@ Datetime formats (--from / --to):
   Missing time defaults to 00:00:00; missing timezone uses machine-local time;
   a DST-ambiguous local time without an explicit offset is rejected.
 
-Columns (16 total; default: launch, agent, path, human, agent-time, elapsed, start, duration, subagents):
+Columns (16 total; default: launch, agent, path, human, agent-time, start, duration, subagents):
 ${columnDocs}
 
   --columns replacement mode: comma-separated bare ids, e.g. 'start,inactive'.
