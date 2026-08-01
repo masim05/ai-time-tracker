@@ -105,6 +105,28 @@ repo/
       index.ts
       src/
 
+  modules/
+    session-reader/
+      src/
+        domain/
+        application/
+        infrastructure/
+        cli/
+      index.ts
+    reporter/
+      src/
+        domain/
+        application/
+        infrastructure/
+        cli/
+      index.ts
+
+  apps/
+    cli/
+      src/
+        main.ts
+        container.ts
+
   tests/
     integration/
       check-ai-flow-config.sh
