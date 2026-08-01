@@ -57,10 +57,12 @@ repo/
       agents/
 
     architecture/
+      README.md
       overview.md
       principles.md
       boundaries.md
       project-structure.md
+      review-checklist.md
       decisions/
 
     engineering/
@@ -79,8 +81,28 @@ repo/
       README.md
       NNN-<type>-<short-slug>/
 
-  src/
-    ...
+  apps/
+    <app-name>/        # Deployment unit: DI wiring, transport setup, process entry point
+      src/
+        main.ts        # Process entry point
+        container.ts   # Dependency injection composition root
+
+  modules/
+    <module-name>/     # Business capability module; workspace package
+      package.json     # name: "@scope/module-name"
+      index.ts         # Public API surface (only file consumers may import)
+      README.md        # Module purpose, owned tables, public API summary
+      src/
+        domain/        # Entities, value objects, domain events, domain services
+        application/   # Use cases, application services, ports (interfaces)
+        infrastructure/ # Adapters implementing ports (DB, external APIs, queues)
+        transport/     # HTTP/gRPC/event controllers, request/response mapping
+
+  packages/
+    <package-name>/    # Shared technical package; workspace package
+      package.json
+      index.ts
+      src/
 
   tests/
     integration/
@@ -93,6 +115,42 @@ repo/
 
   scripts/
     check-ai-flow-config.sh
+```
+
+## Zone Model
+
+Every file inside a module belongs to exactly one zone:
+
+| Zone | Directory | Contents | Allowed imports |
+|---|---|---|---|
+| Domain | `src/domain/` | Entities, value objects, domain events, domain services | Nothing outside `domain/`; no framework, infra, or transport |
+| Application | `src/application/` | Use cases, application services, ports (interfaces) | `domain/` only |
+| Infrastructure | `src/infrastructure/` | Adapters implementing ports | `domain/`, `application/` |
+| Transport | `src/transport/` | Controllers, request/response mapping | `application/` ports only |
+
+## Module Scaffold Example
+
+```txt
+modules/billing/
+  package.json        # { "name": "@scope/billing" }
+  index.ts            # export { BillingService } from './src/application/BillingService'
+  README.md           # Owned tables: invoices, payments
+  src/
+    domain/
+      Invoice.ts
+      Payment.ts
+      BillingDomainService.ts
+    application/
+      ports/
+        IPaymentGateway.ts
+      BillingService.ts
+      CreateInvoiceUseCase.ts
+    infrastructure/
+      migrations/
+      StripePaymentAdapter.ts
+      InvoiceRepository.ts
+    transport/
+      BillingHttpController.ts
 ```
 
 ## Work Items Structure
