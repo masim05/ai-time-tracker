@@ -82,24 +82,25 @@ repo/
       NNN-<type>-<short-slug>/
 
   apps/
-    <app-name>/        # Deployment unit: DI wiring, transport setup, process entry point
+    cli/                   # CLI entry point: DI composition root, command registration
       src/
-        main.ts        # Process entry point
-        container.ts   # Dependency injection composition root
+        main.ts            # Process entry point (bin script target)
+        container.ts       # Dependency injection composition root
+        commands.ts        # Command registration wiring
 
   modules/
-    <module-name>/     # Business capability module; workspace package
-      package.json     # name: "@scope/module-name"
-      index.ts         # Public API surface (only file consumers may import)
-      README.md        # Module purpose, owned data resources, public API summary
+    <module-name>/         # Business capability module; workspace package
+      package.json         # name: "@scope/module-name"
+      index.ts             # Public API surface (only file consumers may import)
+      README.md            # Module purpose, owned data resources, public API summary
       src/
-        domain/        # Entities, value objects, domain events, domain services
-        application/   # Use cases, application services, ports (interfaces)
-        infrastructure/ # Adapters implementing ports (DB, external APIs, queues)
-        transport/     # HTTP/gRPC/event controllers, request/response mapping
+        domain/            # Entities, value objects, domain events, domain services
+        application/       # Use cases, application services, ports (interfaces)
+        infrastructure/    # Adapters implementing ports (storage, external APIs, OS)
+        cli/               # Command handlers, argument parsing, output formatting
 
   packages/
-    <package-name>/    # Shared technical package; workspace package
+    <package-name>/        # Shared technical package; workspace package
       package.json
       index.ts
       src/
@@ -123,34 +124,33 @@ Every file inside a module belongs to exactly one zone:
 
 | Zone | Directory | Contents | Allowed imports |
 |---|---|---|---|
-| Domain | `src/domain/` | Entities, value objects, domain events, domain services | Nothing outside `domain/`; no framework, infra, or transport |
+| Domain | `src/domain/` | Entities, value objects, domain events, domain services | Nothing outside `domain/`; no framework, infra, or CLI imports |
 | Application | `src/application/` | Use cases, application services, ports (interfaces) | `domain/` only |
-| Infrastructure | `src/infrastructure/` | Adapters implementing ports | `domain/`, `application/` |
-| Transport | `src/transport/` | Controllers, request/response mapping | `application/` ports only |
+| Infrastructure | `src/infrastructure/` | Adapters implementing ports (storage, external APIs, OS) | `domain/`, `application/` |
+| CLI | `src/cli/` | Command handlers, argument parsing, output formatting | `application/` ports only |
 
 ## Module Scaffold Example
 
 ```txt
-modules/billing/
-  package.json        # { "name": "@scope/billing" }
-  index.ts            # export { BillingService } from './src/application/BillingService'
-  README.md           # Owned data resources: invoices, payments
+modules/tracking/
+  package.json        # { "name": "@scope/tracking" }
+  index.ts            # export { TrackingService } from './src/application/TrackingService'
+  README.md           # Owned data resources: time-entries
   src/
     domain/
-      Invoice.ts
-      Payment.ts
-      BillingDomainService.ts
+      TimeEntry.ts
+      TrackingDomainService.ts
     application/
       ports/
-        IPaymentGateway.ts
-      BillingService.ts
-      CreateInvoiceUseCase.ts
+        ITimeEntryRepository.ts
+      TrackingService.ts
+      StartTrackingUseCase.ts
+      StopTrackingUseCase.ts
     infrastructure/
-      migrations/      # Data migrations co-located with owning module
-      StripePaymentAdapter.ts
-      InvoiceRepository.ts
-    transport/
-      BillingHttpController.ts
+      migrations/        # Data migrations co-located with owning module
+      FileTimeEntryRepository.ts
+    cli/
+      TrackingCommands.ts
 ```
 
 ## Work Items Structure
@@ -173,10 +173,10 @@ Allowed task types:
 
 Examples:
 
-- `docs/work-items/001-feat-login/`
-- `docs/work-items/002-change-request-checkout-copy/`
-- `docs/work-items/003-bug-user-cant-login/`
-- `docs/work-items/004-chore-docker-tools/`
+- `docs/work-items/001-feat-start-tracking/`
+- `docs/work-items/002-change-request-report-format/`
+- `docs/work-items/003-bug-entry-overlap/`
+- `docs/work-items/004-chore-lint-setup/`
 - `docs/work-items/005-docs-api-readme/`
 
 ## Work Item Requirements

@@ -6,58 +6,58 @@ Accepted
 
 ## Context
 
-The project is a new Node.js application. The team needs an architecture that:
+The project is a Node.js CLI tool for AI-assisted time tracking. The team needs an architecture that:
 
 - Isolates business capabilities to prevent uncontrolled coupling.
-- Keeps the initial operational complexity low (single process).
-- Allows any module to be extracted into a private npm package or an independently deployed API service in the future, with minimal changes to consuming business code.
-- Supports clean testability by keeping domain and application logic independent of frameworks, ORMs, and transport protocols.
+- Keeps the initial operational complexity low (single CLI process, no server infrastructure).
+- Allows any module to be extracted into a private npm package in the future, with minimal changes to consuming business code.
+- Supports clean testability by keeping domain and application logic independent of CLI frameworks, persistence drivers, and external SDKs.
 
-A microservices architecture was not chosen for the initial phase because:
+A microservices or multi-process architecture was not chosen because:
 
-- Distributed tracing, inter-service contracts, and independent deployment pipelines add significant operational overhead before product-market fit.
-- A well-structured monolith with explicit module boundaries provides equivalent isolation benefits at lower cost.
+- A CLI tool operates as a single user-invoked process; distributed infrastructure adds complexity with no benefit at this scale.
+- A well-structured single process with explicit module boundaries provides equivalent isolation at lower cost.
 
-A traditional layered monolith (without module boundaries) was not chosen because:
+A traditional flat monolith (without module boundaries) was not chosen because:
 
 - It tends to accumulate cross-cutting coupling over time.
-- Extraction to services later becomes prohibitively expensive.
+- Extraction of capabilities to separate npm packages later becomes prohibitively expensive.
 
 ## Decision
 
-Start as a **Node.js modular monolith** with the following structure:
+Structure the CLI tool as a **Node.js modular monolith** with the following layout:
 
-- `apps/` — deployment units (entry points, DI composition root, transport setup).
-- `modules/` — business capability modules; each is a workspace package with an explicit zone model (domain, application, infrastructure, transport) and a single public `index.ts`.
+- `apps/cli/` — CLI entry point: DI composition root, command registration, process setup.
+- `modules/` — business capability modules; each is a workspace package with an explicit zone model (domain, application, infrastructure, cli) and a single public `index.ts`.
 - `packages/` — shared technical packages without business logic.
 
 Each module:
 
-- Owns its data resources and public API.
+- Owns its data resources and declares them in its `README.md`.
 - Exposes only its root `index.ts` as a public API.
-- Contains framework- and infra-independent domain and application layers.
-- Uses port interfaces in the application layer so that local adapters can be replaced with remote adapters when the module is extracted.
+- Contains CLI-framework- and infra-independent domain and application layers.
+- Uses port interfaces in the application layer so that local adapters can be replaced with npm package adapters when the module is extracted.
+
+The CLI layer (`cli/`) replaces the transport layer used in server architectures. It handles command parsing, flag validation, and output formatting, calling application use cases via ports.
 
 ## Consequences
 
 ### Positive
 
 - Business capability isolation is enforced by explicit boundary rules from day one.
-- Domain and application code can be unit-tested without persistence or framework setup.
-- Extracting a module to a service requires only replacing local adapters with remote adapters; application and domain layers are unchanged.
-- Modules are workspace packages, so extraction to a private npm package requires only publishing, not restructuring.
-- A single deployment unit keeps initial DevOps complexity low.
+- Domain and application code can be unit-tested without CLI framework or persistence setup.
+- Extracting a module to a private npm package requires only replacing local adapters with package imports; application and domain layers are unchanged.
+- Modules are workspace packages, so extraction requires only publishing, not restructuring.
+- Single-process CLI invocation keeps DevOps complexity minimal.
 
 ### Negative
 
-- More upfront structural discipline is required compared to a flat monolith.
-- In-process module calls must still follow the public API contract (no internal path imports), which requires ongoing review enforcement.
-- If a shared persistence layer is introduced, schema changes affecting multiple modules must be coordinated.
+- More upfront structural discipline is required compared to a flat CLI script.
+- Cross-module calls must still follow the public API contract; no internal path imports, which requires ongoing review enforcement.
 
 ### Neutral
 
-- Cross-module transactions require application-layer coordination (e.g., sagas or explicit two-phase logic) if strong consistency is needed after service extraction.
-- Performance bottlenecks must be addressed at the module level first; service extraction is a scaling option, not the default.
+- Cross-module state consistency must be handled at the application layer (e.g., explicit coordination between use cases) if needed.
 
 ## Exceptions
 

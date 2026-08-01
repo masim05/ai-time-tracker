@@ -4,9 +4,9 @@ Use this checklist when reviewing pull requests or merge requests. All items mar
 
 ## Dependency Direction
 
-- **[BLOCKING]** Does `domain/` import from `application/`, `infrastructure/`, `transport/`, a framework, an ORM, or an external SDK?
-- **[BLOCKING]** Does `application/` import from `infrastructure/`, `transport/`, a framework, an ORM, or an external SDK?
-- **[BLOCKING]** Does `transport/` import from `infrastructure/` or `domain/` directly (bypassing `application/`)?
+- **[BLOCKING]** Does `domain/` import from `application/`, `infrastructure/`, `cli/`, a CLI framework, a persistence driver, or an external SDK?
+- **[BLOCKING]** Does `application/` import from `infrastructure/`, `cli/`, a CLI framework, a persistence driver, or an external SDK?
+- **[BLOCKING]** Does `cli/` import from `infrastructure/` or `domain/` directly (bypassing `application/`)?
 
 ## Cross-Module Imports
 
@@ -25,7 +25,7 @@ Use this checklist when reviewing pull requests or merge requests. All items mar
 
 ## Framework and Infra Independence
 
-- **[BLOCKING]** Does `domain/` or `application/` reference a framework (Express, Fastify, NestJS, etc.), an ORM (Prisma, TypeORM, etc.), a persistence driver, or an external service SDK?
+- **[BLOCKING]** Does `domain/` or `application/` reference a CLI framework (Commander, Yargs, Ink, etc.), a persistence driver, an OS integration library, or an external service SDK?
 
 ## Exceptions
 
