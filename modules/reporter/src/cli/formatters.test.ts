@@ -28,6 +28,7 @@ function row(partial: Partial<ReportRow>): ReportRow {
     actualEndMs: Date.UTC(2026, 7, 1, 17, 6, 46),
     truncated: false,
     active: false,
+    subagentCount: 0,
     ...partial,
   };
 }
@@ -40,7 +41,8 @@ const DEFAULT_IDS: ColumnId[] = [
   'agent-time',
   'elapsed',
   'start',
-  'end',
+  'duration',
+  'subagents',
 ];
 
 describe('TableFormatter', () => {
@@ -84,11 +86,12 @@ describe('JsonFormatter', () => {
 
   it('emits null for an active session end', () => {
     const report = ColumnProjector.project(
-      [row({ endMs: null, active: true })],
-      DEFAULT_IDS,
+      [row({ endMs: null, actualEndMs: null, active: true })],
+      ['launch', 'end', 'actual-end'],
     );
     const parsed = JSON.parse(new JsonFormatter().format(report));
     expect(parsed[0].end).toBeNull();
+    expect(parsed[0]['actual-end']).toBeNull();
   });
 });
 
@@ -96,7 +99,7 @@ describe('CsvFormatter', () => {
   it('emits a header plus rows with the same conventions', () => {
     const report = ColumnProjector.project([row({})], DEFAULT_IDS);
     const lines = new CsvFormatter().format(report).split('\n');
-    expect(lines[0]).toBe('launch,agent,path,human,agent-time,elapsed,start,end');
+    expect(lines[0]).toBe('launch,agent,path,human,agent-time,elapsed,start,duration,subagents');
     expect(lines[1]).toContain('603');
     expect(lines[1]).toContain('2026-08-01T17:01:46+00:00');
   });
@@ -104,7 +107,7 @@ describe('CsvFormatter', () => {
   it('emits the header only for an empty result', () => {
     const report = ColumnProjector.project([], DEFAULT_IDS);
     expect(new CsvFormatter().format(report)).toBe(
-      'launch,agent,path,human,agent-time,elapsed,start,end',
+      'launch,agent,path,human,agent-time,elapsed,start,duration,subagents',
     );
   });
 

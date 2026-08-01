@@ -9,13 +9,15 @@ export type ColumnId =
   | 'human'
   | 'agent-time'
   | 'elapsed'
+  | 'duration'
   | 'inactive'
   | 'start'
   | 'end'
   | 'actual-start'
   | 'actual-end'
   | 'truncated'
-  | 'active';
+  | 'active'
+  | 'subagents';
 
 /** How a raw cell value should be rendered by formatters. */
 export type ColumnKind = 'text' | 'duration' | 'timestamp' | 'boolean';
@@ -87,6 +89,13 @@ export const COLUMNS: readonly ColumnSpec[] = [
     accessor: (r) => r.elapsedMs,
   },
   {
+    id: 'duration',
+    header: 'duration',
+    help: 'Session duration (same as elapsed). Shown by default; use elapsed as an alias.',
+    kind: 'duration',
+    accessor: (r) => r.elapsedMs,
+  },
+  {
     id: 'inactive',
     header: 'inactive',
     help: 'Idle intervals excluded from human-active time by the thresholds.',
@@ -135,6 +144,13 @@ export const COLUMNS: readonly ColumnSpec[] = [
     kind: 'boolean',
     accessor: (r) => r.active,
   },
+  {
+    id: 'subagents',
+    header: 'subagents',
+    help: 'Total number of sub-agents invoked during the launch (non-additive across path rows).',
+    kind: 'text',
+    accessor: (r) => r.subagentCount,
+  },
 ];
 
 /** Default columns, in order. */
@@ -146,7 +162,8 @@ export const DEFAULT_COLUMN_IDS: readonly ColumnId[] = [
   'agent-time',
   'elapsed',
   'start',
-  'end',
+  'duration',
+  'subagents',
 ];
 
 const BY_ID = new Map<string, ColumnSpec>(COLUMNS.map((c) => [c.id, c]));

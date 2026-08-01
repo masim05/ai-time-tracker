@@ -132,6 +132,9 @@ function buildLaunchRows(
   const mainRoot = effRoot(root);
   const mainKey = `${root.interfaceId}\u0000${mainRoot}`;
 
+  // Sub-agent count is launch-level: all non-root invocations.
+  const subagentCount = invs.filter((i) => !i.isRoot).length;
+
   const rows: ReportRow[] = [];
   for (const [key, group] of groups.entries()) {
     const isMain = key === mainKey;
@@ -151,6 +154,7 @@ function buildLaunchRows(
       actualEndMs,
       truncated,
       active,
+      subagentCount,
     });
   }
   return rows;

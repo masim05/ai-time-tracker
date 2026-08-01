@@ -29,4 +29,6 @@ export interface ReportRow {
   readonly truncated: boolean;
   /** True when the launch is still active (no final completion). */
   readonly active: boolean;
+  /** Total number of sub-agents invoked during the launch (non-additive across path rows). */
+  readonly subagentCount: number;
 }

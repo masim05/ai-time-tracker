@@ -34,7 +34,8 @@ describe('ColumnProjector.resolveColumns', () => {
       'human',
       'agent-time',
       'elapsed',
-      'end',
+      'duration',
+      'subagents',
       'inactive',
       'actual-start',
     ]);

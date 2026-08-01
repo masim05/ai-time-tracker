@@ -19,6 +19,7 @@ function row(partial: Partial<ReportRow>): ReportRow {
     actualEndMs: 1,
     truncated: false,
     active: false,
+    subagentCount: 0,
     ...partial,
   };
 }

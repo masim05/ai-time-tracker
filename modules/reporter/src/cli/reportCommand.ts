@@ -241,7 +241,7 @@ Datetime formats (--from / --to):
   Missing time defaults to 00:00:00; missing timezone uses machine-local time;
   a DST-ambiguous local time without an explicit offset is rejected.
 
-Columns (14 total; default: launch, agent, path, human, agent-time, elapsed, start, end):
+Columns (16 total; default: launch, agent, path, human, agent-time, elapsed, start, duration, subagents):
 ${columnDocs}
 
   --columns replacement mode: comma-separated bare ids, e.g. 'start,inactive'.
@@ -259,6 +259,10 @@ Time calculation:
   inactive    Idle intervals excluded from human time by those thresholds.
   elapsed     Launch start to final completion, clipped to the report period;
               repeated (non-additively) across a launch's rows.
+  duration    Session duration (same as elapsed); shown by default.
+              Use 'elapsed' as a selectable alias.
+  subagents   Total sub-agents invoked during the launch; non-additive
+              across path rows; 0 when no sub-agents were started.
 
 Output:
   table  Aligned columns, local timestamps, durations like 0m / 3m / 10h3m / 2d10h3m,
