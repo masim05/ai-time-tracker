@@ -1,4 +1,4 @@
-import { InterfaceId } from '../../../session-reader/src/domain/models';
+import { InterfaceId } from '../../../session-reader';
 
 /**
  * A fully-computed report row. Row identity is
