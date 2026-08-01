@@ -9,7 +9,7 @@ Accepted
 The project is a new Node.js application. The team needs an architecture that:
 
 - Isolates business capabilities to prevent uncontrolled coupling.
-- Keeps the initial operational complexity low (single process, single database).
+- Keeps the initial operational complexity low (single process).
 - Allows any module to be extracted into a private npm package or an independently deployed API service in the future, with minimal changes to consuming business code.
 - Supports clean testability by keeping domain and application logic independent of frameworks, ORMs, and transport protocols.
 
@@ -33,7 +33,7 @@ Start as a **Node.js modular monolith** with the following structure:
 
 Each module:
 
-- Owns its tables and migrations.
+- Owns its data resources and public API.
 - Exposes only its root `index.ts` as a public API.
 - Contains framework- and infra-independent domain and application layers.
 - Uses port interfaces in the application layer so that local adapters can be replaced with remote adapters when the module is extracted.
@@ -43,7 +43,7 @@ Each module:
 ### Positive
 
 - Business capability isolation is enforced by explicit boundary rules from day one.
-- Domain and application code can be unit-tested without database or framework setup.
+- Domain and application code can be unit-tested without persistence or framework setup.
 - Extracting a module to a service requires only replacing local adapters with remote adapters; application and domain layers are unchanged.
 - Modules are workspace packages, so extraction to a private npm package requires only publishing, not restructuring.
 - A single deployment unit keeps initial DevOps complexity low.
@@ -52,7 +52,7 @@ Each module:
 
 - More upfront structural discipline is required compared to a flat monolith.
 - In-process module calls must still follow the public API contract (no internal path imports), which requires ongoing review enforcement.
-- A shared database means schema changes affecting multiple modules must be coordinated.
+- If a shared persistence layer is introduced, schema changes affecting multiple modules must be coordinated.
 
 ### Neutral
 

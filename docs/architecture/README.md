@@ -8,7 +8,7 @@ This directory contains the architecture documentation for the project.
 |---|---|
 | [overview.md](overview.md) | High-level system overview: topology, deployment model, data flow, and external dependencies |
 | [principles.md](principles.md) | Architecture principles that guide all design decisions |
-| [boundaries.md](boundaries.md) | Module and dependency boundaries, public API rules, database ownership, and adapter patterns |
+| [boundaries.md](boundaries.md) | Module and dependency boundaries, public API rules, data ownership, and adapter patterns |
 | [project-structure.md](project-structure.md) | Repository layout, `apps/`, `modules/`, `packages/` topology, and zone model |
 | [review-checklist.md](review-checklist.md) | Blocking architecture violations checklist for code review |
 | [decisions/](decisions/) | Architecture Decision Records (ADRs) |

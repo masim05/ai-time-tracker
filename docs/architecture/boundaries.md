@@ -1,6 +1,6 @@
 # Architecture Boundaries
 
-This document defines module boundaries, dependency rules, public API policy, database ownership, and adapter patterns.
+This document defines module boundaries, dependency rules, public API policy, data ownership, and adapter patterns.
 
 ## Dependency Direction Rules
 
@@ -35,15 +35,15 @@ This document defines module boundaries, dependency rules, public API policy, da
 
 - **Deep imports:** `import { Foo } from 'modules/billing/domain/Foo'` — forbidden.
 - **Circular dependencies:** Module A imports Module B and Module B imports Module A — forbidden.
-- **Direct table access:** Module A reads or writes tables owned by Module B — forbidden.
-- **Uncontrolled dual writes:** Two modules writing to the same table outside a documented owned-by relationship — forbidden.
+- **Direct data access:** Module A directly reads or writes data owned by Module B — forbidden.
+- **Uncontrolled dual writes:** Two modules writing to the same data store resource outside a documented owned-by relationship — forbidden.
 
-## Database Ownership
+## Data Ownership
 
-- Each module declares the tables it owns in its `README.md`.
-- Only the owning module's `infrastructure/` layer may read from or write to its tables.
+- Each module declares the data resources it owns in its `README.md`.
+- Only the owning module's `infrastructure/` layer may read from or write to its data resources.
 - Cross-module data access must go through the owning module's application layer (use cases or ports).
-- Migrations are co-located with the owning module (e.g., `modules/billing/infrastructure/migrations/`).
+- Data migrations or schema definitions are co-located with the owning module (e.g., `modules/billing/infrastructure/migrations/`).
 
 ## Adapter Patterns
 

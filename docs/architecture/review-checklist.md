@@ -13,11 +13,11 @@ Use this checklist when reviewing pull requests or merge requests. All items mar
 - **[BLOCKING]** Does any module import from another module's internal path (anything other than the root `index.ts`/`index.js`)?
 - **[BLOCKING]** Is there a circular dependency between modules?
 
-## Database Ownership
+## Data Ownership
 
-- **[BLOCKING]** Does any module's code directly query or write to a table owned by a different module?
-- **[BLOCKING]** Is a migration placed outside the owning module's `infrastructure/migrations/` directory?
-- **[BLOCKING]** Is there an uncontrolled dual write (two modules writing to the same table without a documented ownership agreement)?
+- **[BLOCKING]** Does any module's code directly access data resources owned by a different module?
+- **[BLOCKING]** Is a data migration or schema definition placed outside the owning module's `infrastructure/migrations/` directory?
+- **[BLOCKING]** Is there an uncontrolled dual write (two modules writing to the same data resource without a documented ownership agreement)?
 
 ## Public API Surface
 
@@ -25,7 +25,7 @@ Use this checklist when reviewing pull requests or merge requests. All items mar
 
 ## Framework and Infra Independence
 
-- **[BLOCKING]** Does `domain/` or `application/` reference a framework (Express, Fastify, NestJS, etc.), an ORM (Prisma, TypeORM, etc.), a database driver, or an external service SDK?
+- **[BLOCKING]** Does `domain/` or `application/` reference a framework (Express, Fastify, NestJS, etc.), an ORM (Prisma, TypeORM, etc.), a persistence driver, or an external service SDK?
 
 ## Exceptions
 
@@ -33,7 +33,7 @@ Use this checklist when reviewing pull requests or merge requests. All items mar
 
 ## Non-Blocking (Advisory)
 
-- [ ] Is the module's owned table list documented in the module's `README.md`?
+- [ ] Is the module's owned data resources documented in the module's `README.md`?
 - [ ] Is the public API surface of the module documented in the module's `README.md`?
 - [ ] Are new cross-module adapter implementations documented?
 - [ ] Is a new architectural exception tracked with an ADR?

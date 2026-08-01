@@ -91,7 +91,7 @@ repo/
     <module-name>/     # Business capability module; workspace package
       package.json     # name: "@scope/module-name"
       index.ts         # Public API surface (only file consumers may import)
-      README.md        # Module purpose, owned tables, public API summary
+      README.md        # Module purpose, owned data resources, public API summary
       src/
         domain/        # Entities, value objects, domain events, domain services
         application/   # Use cases, application services, ports (interfaces)
@@ -134,7 +134,7 @@ Every file inside a module belongs to exactly one zone:
 modules/billing/
   package.json        # { "name": "@scope/billing" }
   index.ts            # export { BillingService } from './src/application/BillingService'
-  README.md           # Owned tables: invoices, payments
+  README.md           # Owned data resources: invoices, payments
   src/
     domain/
       Invoice.ts
@@ -146,7 +146,7 @@ modules/billing/
       BillingService.ts
       CreateInvoiceUseCase.ts
     infrastructure/
-      migrations/
+      migrations/      # Data migrations co-located with owning module
       StripePaymentAdapter.ts
       InvoiceRepository.ts
     transport/

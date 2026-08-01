@@ -2,7 +2,7 @@
 
 ## Deployment Model
 
-The application starts as a **Node.js modular monolith**: a single deployable process backed by a shared PostgreSQL instance. All business modules run in the same process and communicate in-process through stable public APIs.
+The application starts as a **Node.js modular monolith**: a single deployable process. All business modules run in the same process and communicate in-process through stable public APIs.
 
 The structure is designed so that any module can be extracted into a private npm package or an independently deployed API service with minimal changes to consuming business code.
 
@@ -23,7 +23,7 @@ repo/
 ### `modules/`
 - Each subdirectory is a self-contained business capability module (e.g., `modules/billing/`, `modules/users/`).
 - Modules are workspace packages from the beginning, enabling extraction with minimal friction.
-- Each module owns its tables, migrations, and public API.
+- Each module owns its data and public API.
 
 ### `packages/`
 - Shared technical packages that are not specific to a single business capability.
@@ -57,14 +57,12 @@ External requests enter via transport, are dispatched to application use cases, 
 
 ## External Dependencies
 
-- **PostgreSQL** — shared relational database; each module owns its tables.
 - **Node.js runtime** — single-process host for all modules.
 
-External SDKs, ORMs, and HTTP frameworks are confined to `infrastructure/` and `transport/` zones and must not appear in `domain/` or `application/`.
+External SDKs, ORMs, HTTP frameworks, and persistence drivers are confined to `infrastructure/` and `transport/` zones and must not appear in `domain/` or `application/`.
 
 ## Operational Assumptions
 
 - Single-process deployment is the initial model; horizontal scaling is out of scope until service extraction.
-- All modules share the same database connection pool.
 - Cross-module communication is in-process via public module APIs (local adapters).
 - When a module is extracted to a separate service, local adapters are replaced with remote adapters (HTTP client, message consumer) without touching the application layer.
