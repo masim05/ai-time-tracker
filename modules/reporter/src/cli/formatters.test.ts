@@ -60,8 +60,7 @@ describe('TableFormatter', () => {
     // separator and total row appended
     expect(lines[2]).toMatch(/^-+/);
     expect(lines[3]).toContain('total');
-    expect(lines[3]).toContain('10h3m'); // agent-time sum
-    expect(lines[3]).toContain('0'); // subagents sum
+    expect(lines[3]).toContain('10h3m'); // agent-time sum (additive)
   });
 
   it('renders unknown for null paths and empty for active end', () => {
@@ -81,7 +80,7 @@ describe('TableFormatter', () => {
     expect(lines[0]).toContain('launch');
   });
 
-  it('sums duration and numeric text columns in the total row', () => {
+  it('sums only additive columns in the total row; non-additive stay empty', () => {
     const report = ColumnProjector.project(
       [row({ humanMs: 2 * MIN, subagentCount: 3 }), row({ humanMs: 4 * MIN, subagentCount: 7 })],
       ['launch', 'human', 'subagents'],
@@ -92,8 +91,9 @@ describe('TableFormatter', () => {
     expect(lines).toHaveLength(5);
     const totalLine = lines[4];
     expect(totalLine).toContain('total');
-    expect(totalLine).toContain('6m'); // 2+4 minutes
-    expect(totalLine).toContain('10'); // 3+7 subagents
+    expect(totalLine).toContain('6m'); // human is additive: 2+4 minutes
+    // subagents is non-additive: '3', '7', '10' must not appear in total row
+    expect(totalLine).not.toMatch(/\b(3|7|10)\b/);
   });
 });
 

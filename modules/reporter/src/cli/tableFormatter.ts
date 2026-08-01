@@ -50,7 +50,7 @@ export class TableFormatter {
   ): string[] {
     let firstTextDone = false;
     return columns.map((col, i) => {
-      if (col.kind === 'duration') {
+      if (col.additive && col.kind === 'duration') {
         const sum = rows.reduce(
           (acc, row) => acc + Number(row[i] ?? 0),
           0,
@@ -61,17 +61,6 @@ export class TableFormatter {
         if (!firstTextDone) {
           firstTextDone = true;
           return 'total';
-        }
-        // sum if all non-null values are numeric
-        const allNumeric = rows.every(
-          (row) => row[i] === null || !isNaN(Number(row[i])),
-        );
-        if (allNumeric) {
-          const sum = rows.reduce(
-            (acc, row) => acc + (row[i] === null ? 0 : Number(row[i])),
-            0,
-          );
-          return String(sum);
         }
         return '';
       }

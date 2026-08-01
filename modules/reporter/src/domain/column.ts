@@ -33,6 +33,12 @@ export interface ColumnSpec {
   /** One-line help text shown in `report --help`. */
   readonly help: string;
   readonly kind: ColumnKind;
+  /**
+   * True when values from different rows can be safely summed (e.g. human,
+   * agent-time, inactive). Non-additive columns (elapsed, duration, subagents)
+   * are launch-level and repeat across path rows of the same launch.
+   */
+  readonly additive?: boolean;
   /** Extracts the raw cell value from a computed row. */
   readonly accessor: (row: ReportRow) => CellValue;
 }
@@ -72,6 +78,7 @@ export const COLUMNS: readonly ColumnSpec[] = [
     header: 'human',
     help: 'Human-active time: idle intervals within threshold before a prompt.',
     kind: 'duration',
+    additive: true,
     accessor: (r) => r.humanMs,
   },
   {
@@ -79,6 +86,7 @@ export const COLUMNS: readonly ColumnSpec[] = [
     header: 'agent-time',
     help: 'Agent working time; additive across parent and sub-agents.',
     kind: 'duration',
+    additive: true,
     accessor: (r) => r.agentTimeMs,
   },
   {
@@ -100,6 +108,7 @@ export const COLUMNS: readonly ColumnSpec[] = [
     header: 'inactive',
     help: 'Idle intervals excluded from human-active time by the thresholds.',
     kind: 'duration',
+    additive: true,
     accessor: (r) => r.inactiveMs,
   },
   {
