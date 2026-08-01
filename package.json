@@ -1,0 +1,29 @@
+{
+  "name": "ai-time-tracker",
+  "version": "0.1.0",
+  "description": "Local, offline CLI that reports cross-agent AI session activity time.",
+  "license": "MIT",
+  "private": true,
+  "type": "commonjs",
+  "bin": {
+    "ai-time-tracker": "dist/apps/cli/src/main.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "cli": "ts-node apps/cli/src/main.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^20.14.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.8"
+  }
+}
