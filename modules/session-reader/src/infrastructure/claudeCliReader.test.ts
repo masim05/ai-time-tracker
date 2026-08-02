@@ -222,9 +222,9 @@ describe('ClaudeCliReader', () => {
 
   it('does not let a stale registry entry mask a live one', () => {
     // S3 is named by three registry files: a live one (5151) with a stale file
-    // on either side of it in name order (1150, 9150). Whatever order the
-    // directory is read in, keeping only one entry per session would report the
-    // running launch as finished.
+    // on either side of it in name order (1150, 9150), so a stale entry is read
+    // after the live one under both ascending and descending order and keeping
+    // only one entry per session would report the running launch as finished.
     expect(segmentsOf(read({ alivePids: [5151] }), S3).at(-1)?.endMs).toBeNull();
     // With neither process alive the launch is finished.
     expect(segmentsOf(read(), S3).at(-1)?.endMs).not.toBeNull();

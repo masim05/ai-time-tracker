@@ -19,7 +19,7 @@ stubbed PID-liveness probe. No test reads the developer's real `~/.claude`.
 | `projects/-work-beta/s6….jsonl` | Single-segment launch registered live. |
 | `projects/-work-beta/s7….jsonl` | Response that changes directory mid-answer, with no prompt at the boundary. |
 | `projects/-work-beta/s9….jsonl` | Transcript with no `entrypoint` recorded. |
-| `sessions/{4242,5151,9150}.json` | Live registry: `s6` live, `s3` live, and a stale entry naming `s3` that is read *after* the live one. |
+| `sessions/{4242,5151,1150,9150}.json` | Live registry: `s6` live (4242), `s3` live (5151), and two stale entries naming `s3` (1150, 9150) placed on either side of the live one in name order, so the stale-versus-live test does not depend on directory read order. |
 
 Fixtures contain only structural metadata and timestamps: no prompt text, no
 responses, no source code, no tool output.
