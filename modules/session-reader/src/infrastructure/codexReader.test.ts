@@ -14,21 +14,21 @@ beforeAll(() => {
   state.exec(`
     CREATE TABLE threads (
       id TEXT, created_at_ms INTEGER, updated_at_ms INTEGER, cwd TEXT,
-      thread_source TEXT
+      thread_source TEXT, name TEXT
     );
     CREATE TABLE thread_spawn_edges (
       parent_thread_id TEXT, child_thread_id TEXT, status TEXT
     );
   `);
   const insThread = state.prepare(
-    'INSERT INTO threads (id, created_at_ms, updated_at_ms, cwd, thread_source) VALUES (?,?,?,?,?)',
+    'INSERT INTO threads (id, created_at_ms, updated_at_ms, cwd, thread_source, name) VALUES (?,?,?,?,?,?)',
   );
   // Root CLI thread.
-  insThread.run('T-root', 1000, 500000, '/home/dev/app', 'user');
+  insThread.run('T-root', 1000, 500000, '/home/dev/app', 'user', 'codex-work');
   // Sub-agent thread under the root, in the same dir.
-  insThread.run('T-sub', 5000, 400000, '/home/dev/app', 'subagent');
+  insThread.run('T-sub', 5000, 400000, '/home/dev/app', 'subagent', null);
   // Independent app thread.
-  insThread.run('T-app', 2000, 600000, '/home/dev/app2', 'user');
+  insThread.run('T-app', 2000, 600000, '/home/dev/app2', 'user', null);
   state
     .prepare(
       'INSERT INTO thread_spawn_edges (parent_thread_id, child_thread_id, status) VALUES (?,?,?)',
@@ -91,6 +91,10 @@ describe('CodexReader', () => {
     expect(root.isRoot).toBe(true);
     expect(root.launchRootId).toBe('T-root');
     expect(root.promptsMs).toEqual([1000]);
+    expect(root.sessionNameEvents).toEqual([
+      { timestampMs: 1000, name: 'codex-work' },
+    ]);
+    expect(root.hasApproximateNameHistory).toBe(true);
   });
 
   it('reconstructs the sub-agent DAG under the root launch', () => {
@@ -132,5 +136,14 @@ describe('CodexReader', () => {
     const result = new CodexReader({ baseDir: corrupt }).read();
     expect(result.diagnostics.some((d) => d.severity === 'error')).toBe(true);
     fs.rmSync(corrupt, { recursive: true, force: true });
+  });
+
+  it('warns when latest-only name fallback is used', () => {
+    const { diagnostics } = read();
+    expect(
+      diagnostics.some((d) =>
+        d.reason.includes('session rename history unavailable'),
+      ),
+    ).toBe(true);
   });
 });

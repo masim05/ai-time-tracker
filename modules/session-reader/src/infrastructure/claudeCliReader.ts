@@ -5,6 +5,7 @@ import {
   Diagnostic,
   NormalizedInvocation,
   ReadResult,
+  SessionNameEvent,
   WorkInterval,
 } from '../domain/models';
 
@@ -34,6 +35,8 @@ export interface ClaudeTranscriptRecord {
   toolUseResult?: unknown;
   sourceToolAssistantUUID?: string;
   sourceToolUseID?: string;
+  sessionName?: string;
+  sessionNameSource?: string;
 }
 
 /** A transcript file that survived parsing. */
@@ -288,6 +291,11 @@ export class ClaudeCliReader implements ISessionReader {
       // Every record was already attributed to the launch this one resumed.
       return;
     }
+    const sessionNameEvents = extractClaudeNameEvents(
+      timed,
+      session.sessionId,
+      diagnostics,
+    );
 
     const segments: Segment[] = [];
     let current: Segment | null = null;
@@ -361,6 +369,7 @@ export class ClaudeCliReader implements ISessionReader {
         isSubagent: false,
         promptsMs: segment.promptsMs,
         agentSpans: segment.spans,
+        sessionNameEvents: isRoot ? sessionNameEvents : undefined,
         startMs: segment.startMs,
         endMs: active && isLast ? null : segment.endMs,
       });
@@ -483,6 +492,50 @@ export class ClaudeCliReader implements ISessionReader {
     const entries = registry.get(sessionId) ?? [];
     return entries.some((entry) => this.isPidAlive(entry.pid, entry.procStart));
   }
+}
+
+function extractClaudeNameEvents(
+  timed: readonly { record: ClaudeTranscriptRecord; ts: number }[],
+  sessionId: string,
+  diagnostics: Diagnostic[],
+): SessionNameEvent[] {
+  const events: SessionNameEvent[] = [];
+  for (const { record, ts } of timed) {
+    const candidate = explicitClaudeName(record);
+    if (candidate === undefined) {
+      continue;
+    }
+    if (candidate.trim().length === 0) {
+      diagnostics.push({
+        provider: 'claude',
+        interfaceId: 'claude-cli',
+        sessionId,
+        eventType: 'session-name-metadata',
+        timestampMs: ts,
+        reason: 'explicit session name metadata was empty or whitespace',
+        severity: 'warning',
+      });
+      continue;
+    }
+    events.push({ timestampMs: ts, name: candidate });
+  }
+  return events;
+}
+
+function explicitClaudeName(
+  record: ClaudeTranscriptRecord,
+): string | undefined {
+  if (typeof record.sessionName !== 'string') {
+    return undefined;
+  }
+  const source = record.sessionNameSource;
+  if (source === undefined) {
+    return record.sessionName;
+  }
+  if (source === 'user' || source === 'rename' || source === 'launch') {
+    return record.sessionName;
+  }
+  return undefined;
 }
 
 /**

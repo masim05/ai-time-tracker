@@ -22,6 +22,14 @@ export interface WorkInterval {
   readonly endMs: number;
 }
 
+/** A persisted explicit session-name event from provider-owned metadata. */
+export interface SessionNameEvent {
+  /** Event timestamp in epoch milliseconds. */
+  readonly timestampMs: number;
+  /** Persisted explicit name value. */
+  readonly name: string;
+}
+
 /**
  * A single normalized agent invocation (a root session/thread or a sub-agent).
  * Every invocation belongs to exactly one launch (identified by `launchRootId`).
@@ -50,6 +58,16 @@ export interface NormalizedInvocation {
   readonly promptsMs: readonly number[];
   /** Agent work intervals (ms). Additive across parent and children. */
   readonly agentSpans: readonly WorkInterval[];
+  /**
+   * Explicit persisted session-name events for the launch root.
+   * Non-root invocations leave this undefined.
+   */
+  readonly sessionNameEvents?: readonly SessionNameEvent[];
+  /**
+   * True when name history was unavailable and the reader approximated a
+   * launch-wide name from latest-only metadata.
+   */
+  readonly hasApproximateNameHistory?: boolean;
   /** Actual start of the invocation (ms). */
   readonly startMs: number;
   /** Actual end of the invocation (ms), or `null` when still active. */

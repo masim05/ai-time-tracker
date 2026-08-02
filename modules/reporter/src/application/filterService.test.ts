@@ -9,6 +9,7 @@ function row(partial: Partial<ReportRow>): ReportRow {
     launchShort: 'abc',
     agent: 'codex-cli',
     path: '/home/dev/app',
+    name: null,
     humanMs: 0,
     agentTimeMs: 0,
     elapsedMs: 0,
@@ -20,6 +21,7 @@ function row(partial: Partial<ReportRow>): ReportRow {
     truncated: false,
     active: false,
     subagentCount: 0,
+    segmentStartMs: 0,
     ...partial,
   };
 }

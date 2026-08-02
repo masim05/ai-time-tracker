@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import * as path from 'path';
-import { CopilotCliReader, parseWorkspaceCwd } from './copilotCliReader';
+import {
+  CopilotCliReader,
+  parseWorkspaceCwd,
+  parseWorkspaceMeta,
+} from './copilotCliReader';
 import { NormalizedInvocation } from '../domain/models';
 
 const FIXTURE_BASE = path.join(__dirname, '__fixtures__', 'copilot');
@@ -22,6 +26,17 @@ describe('parseWorkspaceCwd', () => {
     );
   });
 
+  describe('parseWorkspaceMeta', () => {
+    it('extracts name and user_named metadata', () => {
+      const meta = parseWorkspaceMeta(
+        'cwd: /home/dev/app\nname: issues-9\nuser_named: true\n',
+      );
+      expect(meta.cwd).toBe('/home/dev/app');
+      expect(meta.name).toBe('issues-9');
+      expect(meta.userNamed).toBe(true);
+    });
+  });
+
   it('returns undefined when cwd is absent', () => {
     expect(parseWorkspaceCwd('id: x\n')).toBeUndefined();
   });
@@ -38,6 +53,10 @@ describe('CopilotCliReader', () => {
     expect(root.cwd).toBe('/home/dev/app');
     // Only the human prompt counts; the parentAgentTaskId prompt is excluded.
     expect(root.promptsMs).toEqual([iso('2026-08-01T10:01:00.000Z')]);
+    expect(root.sessionNameEvents).toEqual([
+      { timestampMs: iso('2026-08-01T10:00:00.000Z'), name: 'issues-9' },
+    ]);
+    expect(root.hasApproximateNameHistory).toBe(true);
   });
 
   it('counts main-agent turns, including an aborted turn through the abort ts', () => {
@@ -83,6 +102,15 @@ describe('CopilotCliReader', () => {
     expect(err).toBeDefined();
     // Diagnostics never carry session content.
     expect(err?.reason).not.toContain('this-is-not-json');
+  });
+
+  it('warns when latest-only name fallback is used', () => {
+    const { diagnostics } = read();
+    expect(
+      diagnostics.some((d) =>
+        d.reason.includes('session rename history unavailable'),
+      ),
+    ).toBe(true);
   });
 
   it('returns nothing when there is no session-state directory', () => {

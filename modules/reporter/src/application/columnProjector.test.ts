@@ -31,6 +31,7 @@ describe('ColumnProjector.resolveColumns', () => {
       'launch',
       'agent',
       'path',
+      'name',
       'human',
       'agent-time',
       'duration',

@@ -7,6 +7,7 @@ import {
   InterfaceId,
   NormalizedInvocation,
   ReadResult,
+  SessionNameEvent,
   WorkInterval,
 } from '../domain/models';
 import { clusterTimestamps } from '../domain/interval';
@@ -28,6 +29,7 @@ interface ThreadRow {
   updated_at_ms: number | null;
   cwd: string | null;
   thread_source: string | null;
+  name?: string | null;
 }
 
 const DEFAULT_IDLE_GAP_MS = 2 * 60 * 1000;
@@ -70,7 +72,7 @@ export class CodexReader implements ISessionReader {
       try {
         threads = state
           .prepare(
-            'SELECT id, created_at_ms, updated_at_ms, cwd, thread_source FROM threads',
+            'SELECT id, created_at_ms, updated_at_ms, cwd, thread_source, name FROM threads',
           )
           .all() as ThreadRow[];
         edges = state
@@ -135,6 +137,13 @@ export class CodexReader implements ISessionReader {
           ? []
           : promptsByThread.get(thread.id) ?? [];
 
+      const nameEvents = resolveCodexNameEvents(
+        thread,
+        rootId,
+        interfaceId,
+        start,
+        diagnostics,
+      );
       invocations.push({
         provider: 'codex',
         interfaceId,
@@ -145,6 +154,9 @@ export class CodexReader implements ISessionReader {
         isRoot: thread.id === rootId,
         promptsMs: prompts,
         agentSpans: spans,
+        sessionNameEvents: thread.id === rootId ? nameEvents : undefined,
+        hasApproximateNameHistory:
+          thread.id === rootId ? nameEvents.length > 0 : undefined,
         startMs: start,
         endMs: end,
       });
@@ -257,6 +269,43 @@ export class CodexReader implements ISessionReader {
     }
     return byThread;
   }
+}
+
+function resolveCodexNameEvents(
+  thread: ThreadRow,
+  rootId: string,
+  interfaceId: InterfaceId,
+  startMs: number,
+  diagnostics: Diagnostic[],
+): SessionNameEvent[] {
+  if (thread.id !== rootId) {
+    return [];
+  }
+  if (thread.name === undefined || thread.name === null) {
+    return [];
+  }
+  if (thread.name.trim().length === 0) {
+    diagnostics.push({
+      provider: 'codex',
+      interfaceId,
+      sessionId: thread.id,
+      eventType: 'thread-metadata',
+      reason: 'explicit session name metadata was empty or whitespace',
+      severity: 'warning',
+    });
+    return [];
+  }
+  diagnostics.push({
+    provider: 'codex',
+    interfaceId,
+    sessionId: thread.id,
+    eventType: 'thread-metadata',
+    timestampMs: startMs,
+    reason:
+      'session rename history unavailable; applying latest explicit name to full launch',
+    severity: 'warning',
+  });
+  return [{ timestampMs: startMs, name: thread.name }];
 }
 
 /** Follows spawn edges to the top-most ancestor thread id. */

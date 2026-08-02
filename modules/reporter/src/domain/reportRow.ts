@@ -15,6 +15,8 @@ export interface ReportRow {
   launchShort: string;
   readonly agent: InterfaceId;
   readonly path: string | null;
+  /** Explicit persisted session name active for this row's temporal segment. */
+  readonly name: string | null;
   readonly humanMs: number;
   readonly agentTimeMs: number;
   readonly elapsedMs: number;
@@ -31,4 +33,6 @@ export interface ReportRow {
   readonly active: boolean;
   /** Total number of sub-agents invoked during the launch (non-additive across path rows). */
   readonly subagentCount: number;
+  /** Internal chronological key for per-launch temporal segments. */
+  readonly segmentStartMs: number;
 }

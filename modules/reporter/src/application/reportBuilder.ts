@@ -47,8 +47,8 @@ export const ReportBuilder = {
 };
 
 function compareRows(a: ReportRow, b: ReportRow): number {
-  if (a.actualStartMs !== b.actualStartMs) {
-    return a.actualStartMs - b.actualStartMs;
+  if (a.segmentStartMs !== b.segmentStartMs) {
+    return a.segmentStartMs - b.segmentStartMs;
   }
   if (a.launchId !== b.launchId) {
     return a.launchId < b.launchId ? -1 : 1;

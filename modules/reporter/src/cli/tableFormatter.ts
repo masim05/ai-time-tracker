@@ -92,6 +92,9 @@ export class TableFormatter {
       case 'text':
       default:
         if (value === null) {
+          if (column.id === 'name') {
+            return '-';
+          }
           return 'unknown';
         }
         if (column.id === 'path') {

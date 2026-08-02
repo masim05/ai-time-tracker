@@ -252,7 +252,7 @@ Datetime formats (--from / --to):
   Missing time defaults to 00:00:00; missing timezone uses machine-local time;
   a DST-ambiguous local time without an explicit offset is rejected.
 
-Columns (16 total; default: launch, agent, path, human, agent-time, start, duration, subagents):
+Columns (17 total; default: launch, agent, path, name, human, agent-time, start, duration, subagents):
 ${columnDocs}
 
   --columns replacement mode: comma-separated bare ids, e.g. 'start,inactive'.
@@ -260,6 +260,10 @@ ${columnDocs}
   Signed and unsigned tokens must not be mixed.
 
 Time calculation:
+  name        Explicit provider-persisted session name active for the row segment.
+              Unset name renders as '-' (table), null (json), or empty (csv).
+              Rows are split at persisted rename boundaries in timestamp order.
+              Latest-only provider name storage is applied launch-wide with a warning.
   agent-time  Starts at a human prompt; ends when the parent and all sub-agents
               finish. Parent and sub-agent spans are additive, including overlaps.
               Cancelled/failed work counts through the cancellation/failure time.

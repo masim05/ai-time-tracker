@@ -6,6 +6,7 @@ export type ColumnId =
   | 'launch-id'
   | 'agent'
   | 'path'
+  | 'name'
   | 'human'
   | 'agent-time'
   | 'elapsed'
@@ -43,7 +44,7 @@ export interface ColumnSpec {
   readonly accessor: (row: ReportRow) => CellValue;
 }
 
-/** The full catalog of 16 columns, in canonical display order. */
+/** The full catalog of 17 columns, in canonical display order. */
 export const COLUMNS: readonly ColumnSpec[] = [
   {
     id: 'launch',
@@ -72,6 +73,13 @@ export const COLUMNS: readonly ColumnSpec[] = [
     help: 'Effective working-directory root for the row (unknown if absent).',
     kind: 'text',
     accessor: (r) => r.path,
+  },
+  {
+    id: 'name',
+    header: 'name',
+    help: 'Explicit provider-persisted session name active during this row time segment.',
+    kind: 'text',
+    accessor: (r) => r.name,
   },
   {
     id: 'human',
@@ -167,6 +175,7 @@ export const DEFAULT_COLUMN_IDS: readonly ColumnId[] = [
   'launch',
   'agent',
   'path',
+  'name',
   'human',
   'agent-time',
   'start',
