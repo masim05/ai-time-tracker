@@ -1,6 +1,6 @@
 # ai-time-tracker
 
-This repository is an AI-friendly project template for teams working in GitLab with multiple coding assistants.
+`ai-time-tracker` is a local, read-only CLI service that reports AI session activity time across Copilot CLI, Codex, and Claude Code from each developer machine.
 
 ## Cross-Agent Session Activity Report
 
@@ -23,6 +23,17 @@ npm run build      # optional: compile to dist/ for a production run
 npm run cli -- report [options]
 npm run cli -- --help
 npm run cli -- report --help
+```
+
+### Example output
+
+```text
+$ npm run cli -- report -a codex -f 2026-08-01 -t 2026-08-01-235959
+launch  agent      path                 human  agent-time  start             duration  subagents
+4baf32  codex-cli  ~/src/my-api            7m        34m   2026-08-01 09:12      58m          1
+9e10a7  codex-app  ~/src/my-api            2m        11m   2026-08-01 13:44      23m          0
+-----------------------------------------------------------------------------------------------
+total                                   9m        45m
 ```
 
 ### Options
