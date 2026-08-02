@@ -37,7 +37,7 @@ describe('timestamp formatting (TZ=UTC)', () => {
   const ms = Date.UTC(2026, 7, 1, 17, 1, 46);
 
   it('formats a local timestamp', () => {
-    expect(formatLocalTimestamp(ms)).toBe('2026-08-01 17:01:46');
+    expect(formatLocalTimestamp(ms)).toBe('2026-08-01 17:01');
   });
 
   it('formats ISO 8601 with UTC offset', () => {

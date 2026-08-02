@@ -53,7 +53,7 @@ describe('TableFormatter', () => {
     expect(lines[0]).toContain('agent-time');
     expect(lines[1]).toContain('~/app');
     expect(lines[1]).toContain('10h3m');
-    expect(lines[1]).toContain('2026-08-01 17:01:46');
+    expect(lines[1]).toContain('2026-08-01 17:01');
     // header/value columns aligned to the same width
     expect(lines[0].indexOf('agent')).toBeGreaterThanOrEqual(0);
     // separator and total row appended

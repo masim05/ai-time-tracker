@@ -29,12 +29,12 @@ function pad(n: number, width = 2): string {
   return String(n).padStart(width, '0');
 }
 
-/** Local timestamp for table output: `2026-08-01 17:01:46`. */
+/** Local timestamp for table output: `2026-08-01 17:01`. */
 export function formatLocalTimestamp(ms: number): string {
   const d = new Date(ms);
   return (
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ` +
-    `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+    `${pad(d.getHours())}:${pad(d.getMinutes())}`
   );
 }
 
