@@ -162,3 +162,18 @@ scripts/check-specs.sh
 scripts/check-dod.sh
 scripts/check-pr.sh
 ```
+
+## GitHub Actions CI
+
+GitHub Actions runs workflow `CI` for:
+
+- pull requests targeting `main`;
+- pushes to `main`;
+- manual runs via `workflow_dispatch`.
+
+The workflow publishes two stable checks:
+
+- `Application checks`: `npm ci`, `npm run typecheck`, `npm test`, `npm run build`;
+- `Repository policy checks`: `scripts/check-ai-flow-config.sh`,
+  `tests/integration/check-ai-flow-config.sh`, `scripts/check-architecture.sh`,
+  `scripts/check-specs.sh`, `scripts/check-dod.sh`, `scripts/check-pr.sh`.
