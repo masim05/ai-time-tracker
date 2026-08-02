@@ -19,3 +19,5 @@ This directory contains the architecture documentation for the project.
 |---|---|
 | [ADR-0001](decisions/ADR-0001-project-structure.md) | Project Structure |
 | [ADR-0002](decisions/ADR-0002-modular-monolith.md) | Modular Monolith |
+| [ADR-0002](decisions/ADR-0002-session-storage-formats.md) | Session Storage Formats (Copilot, Codex) — number collides with the entry above |
+| [ADR-0003](decisions/ADR-0003-claude-session-storage.md) | Claude Code Session Storage And Identity |
