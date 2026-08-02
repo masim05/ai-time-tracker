@@ -13,7 +13,7 @@ npm run cli -- report
 
 **Expected outcome:**
 - Discovers `~/.copilot/session-state/*/events.jsonl`
-- Outputs aligned table with default columns: `launch agent path human agent-time elapsed start end`
+- Outputs aligned table with default columns: `launch agent path human agent-time start duration subagents`
 - Durations formatted as `0m`, `3m`, `10h3m`, etc.
 - Exit code 0
 
@@ -74,6 +74,7 @@ npm run cli -- report --columns '-start,+inactive,+actual-start'
 
 **Expected outcome:**
 - Default columns with `start` removed, `inactive` and `actual-start` appended
+- Resulting columns: `launch agent path human agent-time duration subagents inactive actual-start`
 - Columns appear in the documented final order
 - Exit code 0
 
@@ -178,5 +179,5 @@ npm run cli -- report -h
 
 **Expected outcome:**
 - Root help lists available commands
-- Report help documents: every option, default, accepted format, all 14 columns, calculation rules, threshold values, diagnostic behavior, and examples
+- Report help documents: every option, default, accepted format, all 16 columns, calculation rules, threshold values, diagnostic behavior, and examples
 - Exit code 0 for all three

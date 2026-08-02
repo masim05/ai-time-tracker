@@ -22,7 +22,7 @@ GitHub Copilot CLI and Codex (CLI + App) session stores on the dev server.
 
 ```bash
 npm run cli -- --help            # exit 0
-npm run cli -- report --help     # exit 0, all 14 columns documented
+npm run cli -- report --help     # exit 0, all 16 columns documented
 npm run cli -- report -h         # exit 0
 ```
 
@@ -64,7 +64,7 @@ npm run cli -- report --from 2026-07-30 --to 2026-07-31 --output csv
 
 ```bash
 npm run cli -- report --columns '+inactive,+truncated,+active' --output csv
-# header: launch,agent,path,human,agent-time,elapsed,start,end,inactive,truncated,active
+# header: launch,agent,path,human,agent-time,start,duration,subagents,inactive,truncated,active
 ```
 
 ### Exit-code behavior
