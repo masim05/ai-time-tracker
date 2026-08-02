@@ -9,9 +9,11 @@ tool-output content.
 
 **The machine keeps producing and pruning sessions, so every figure below is a
 snapshot.** Re-running later will drift; the invariants that must hold are the
-properties (all entrypoints `cli` or `sdk-cli`, active launches equal to live
-registry entries with a live process, sub-agent count equal to the number of
-`agent-*.jsonl` files under reported launches), not the absolute numbers.
+properties (all entrypoints `cli` or `sdk-cli`; active launches equal to the
+live registry entries whose process is alive **and** whose session has a
+transcript — a registry entry without one cannot produce a row; sub-agent count
+equal to the number of `agent-*.jsonl` files under the reported launches), not
+the absolute numbers.
 
 Automated suite at this commit: **153 tests passed** in 15 files —
 **107 pre-existing, none modified**, plus **46 new** (`claudeCliReader.test.ts`
@@ -124,6 +126,8 @@ containing one transcript with a malformed line:
 HOME=<tmp> npm run cli -- report -a claude
 # stdout: the valid launch row (5m agent-time)
 # stderr: 1 record(s) could not be read; re-run with --verbose for details.
+#         1 warning(s); re-run with --verbose for details.
+#         (the warning is the Codex reader finding no state database in the synthetic home)
 # exit:   1
 HOME=<tmp> npm run cli -- report -a claude --verbose
 # stderr: [error] provider=claude interface=claude-cli session=demo file=<path> event=jsonl-line reason=malformed JSON at line 2

@@ -459,9 +459,9 @@ export class ClaudeCliReader implements ISessionReader {
         if (typeof parsed.sessionId === 'string' && typeof parsed.pid === 'number') {
           // Several entries can name the same session (a stale file left by a
           // crashed process next to the live one), so keep them all.
-          const entries = registry.get(parsed.sessionId) ?? [];
-          entries.push({ pid: parsed.pid, procStart: parsed.procStart });
-          registry.set(parsed.sessionId, entries);
+          const forSession = registry.get(parsed.sessionId) ?? [];
+          forSession.push({ pid: parsed.pid, procStart: parsed.procStart });
+          registry.set(parsed.sessionId, forSession);
         }
       } catch {
         diagnostics.push({
