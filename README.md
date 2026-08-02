@@ -34,7 +34,7 @@ launch  agent      path                 human  agent-time  start             dur
 9e10a7  codex-app  ~/src/my-api            2m        11m   2026-08-01 13:44      23m          0
 ab72fd  claude-cli ~/src/my-api            5m      1h47m   2026-08-01 16:20    1h08m          4
 ------------------------------------------------------------------------------------------------
-total                                  14m      2h32m
+total                                    14m      2h32m
 ```
 
 ### Options
