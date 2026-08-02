@@ -21,7 +21,4 @@ export {
 export {
   ClaudeCliReader,
   ClaudeCliReaderOptions,
-  ClaudeTranscriptRecord,
-  isAgentActivity,
-  isHumanPrompt,
 } from './src/infrastructure/claudeCliReader';

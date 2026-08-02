@@ -62,7 +62,10 @@ A human prompt is a `type: "user"` record that is not a sidechain, not
 
 A span runs from a prompt to the last agent activity before the next prompt, so
 cancellations and interruptions count through their last recorded activity and a
-prompt with no response yields a zero-length span.
+prompt with no response yields a zero-length span. A span crossing a directory
+change is split at the boundary (see decision 5), so the time is attributed to
+the directory the work was recorded in rather than to the one the prompt came
+from.
 
 ### 5. Working directories become launch segments
 
@@ -81,11 +84,13 @@ is unchanged.
 
 ### 6. Active detection uses the live-session registry plus a liveness probe
 
-A launch is active when `sessions/<pid>.json` names its `sessionId`, the process
-is alive (signal `0`, which delivers nothing), and the recorded `procStart`
-matches field 22 of `/proc/<pid>/stat`. The `procStart` comparison guards
-against pid reuse; where procfs is unavailable (macOS) liveness alone decides.
-Only the last segment of an active launch has an open end.
+A launch is active when some `sessions/<pid>.json` names its `sessionId`, that
+process is alive (signal `0`, which delivers nothing), and the recorded
+`procStart` matches field 22 of `/proc/<pid>/stat`. The `procStart` comparison
+guards against pid reuse; where procfs is unavailable (macOS) liveness alone
+decides. All registry entries for a session are kept, so a stale file from a
+crashed process cannot mask the live one. Only the last segment of an active
+launch has an open end.
 
 Rejected alternative: a recency window over the last record. Local evidence
 included genuinely open sessions idle for a month, which a window would report

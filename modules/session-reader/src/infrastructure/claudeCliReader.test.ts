@@ -1,6 +1,12 @@
 import * as path from 'path';
 import { describe, expect, it } from 'vitest';
-import { ClaudeCliReader } from './claudeCliReader';
+import {
+  ClaudeCliReader,
+  ClaudeTranscriptRecord,
+  isAgentActivity,
+  isHumanPrompt,
+  procStartFromStat,
+} from './claudeCliReader';
 import { NormalizedInvocation, ReadResult } from '../domain/models';
 
 const FIXTURES = path.join(__dirname, '__fixtures__', 'claude');
@@ -11,6 +17,9 @@ const S2 = 's2-2222-2222-2222-222222222222';
 const S3 = 's3-3333-3333-3333-333333333333';
 const S5 = 's5-5555-5555-5555-555555555555';
 const S6 = 's6-6666-6666-6666-666666666666';
+const S7 = 's7-7777-7777-7777-777777777777';
+const S8 = 's8-8888-8888-8888-888888888888';
+const S9 = 's9-9999-9999-9999-999999999999';
 
 /** Reads the fixture tree with a deterministic liveness probe. */
 function read(options: { alivePids?: number[] } = {}): ReadResult {
@@ -26,6 +35,13 @@ function launchOf(
   launchRootId: string,
 ): NormalizedInvocation[] {
   return result.invocations.filter((i) => i.launchRootId === launchRootId);
+}
+
+function segmentsOf(
+  result: ReadResult,
+  launchRootId: string,
+): NormalizedInvocation[] {
+  return launchOf(result, launchRootId).filter((i) => i.isSubagent === false);
 }
 
 function totalSpanMs(invocations: readonly NormalizedInvocation[]): number {
@@ -84,8 +100,12 @@ describe('ClaudeCliReader', () => {
     expect(totalSpanMs(launchOf(read(), S1))).toBe(7 * MIN);
   });
 
+  it('drops a launch whose records were all replayed from an earlier one', () => {
+    expect(launchOf(read(), S8)).toEqual([]);
+  });
+
   it('splits a launch into one invocation per working directory', () => {
-    const segments = launchOf(read(), S3).filter((i) => i.isSubagent === false);
+    const segments = segmentsOf(read(), S3);
     expect(segments.map((i) => i.cwd)).toEqual([
       '/work/alpha',
       '/work/alpha/tmp/wts/task',
@@ -101,8 +121,28 @@ describe('ClaudeCliReader', () => {
     ]);
   });
 
+  it('splits a response that changes directory at the boundary', () => {
+    // One prompt at 09:00; the answer runs to 09:10 but moves to an unrelated
+    // root at 09:06, so 6 minutes belong to the first directory and 4 to the
+    // second instead of all 10 landing on the launch root.
+    const segments = segmentsOf(read(), S7);
+    expect(segments.map((i) => i.cwd)).toEqual(['/work/alpha', '/work/omega']);
+    expect(segments[0].agentSpans).toEqual([
+      { startMs: at('2026-07-20T09:00:00Z'), endMs: at('2026-07-20T09:06:00Z') },
+    ]);
+    expect(segments[1].agentSpans).toEqual([
+      { startMs: at('2026-07-20T09:06:00Z'), endMs: at('2026-07-20T09:10:00Z') },
+    ]);
+    // No span may run past the end of the invocation that owns it.
+    for (const segment of segments) {
+      for (const span of segment.agentSpans) {
+        expect(span.endMs).toBeLessThanOrEqual(segment.endMs ?? Infinity);
+      }
+    }
+  });
+
   it('keeps metadata records without a cwd in the current segment', () => {
-    const segments = launchOf(read(), S3).filter((i) => i.isSubagent === false);
+    const segments = segmentsOf(read(), S3);
     // The transcript contains a file-history-delta record with no cwd between
     // the first and second directory; it must not open an `unknown` segment.
     expect(segments).toHaveLength(3);
@@ -139,6 +179,17 @@ describe('ClaudeCliReader', () => {
     expect(skipped[0].reason).toContain('1 session(s) skipped');
   });
 
+  it('reports a transcript without an entrypoint separately from SDK sessions', () => {
+    const result = read();
+    expect(launchOf(result, S9)).toEqual([]);
+    const skipped = result.diagnostics.filter((d) =>
+      d.reason.includes('no entrypoint recorded'),
+    );
+    expect(skipped).toHaveLength(1);
+    expect(skipped[0].severity).toBe('warning');
+    expect(skipped[0].reason).not.toContain('Agent SDK');
+  });
+
   it('reports a malformed line as an error and keeps the valid records', () => {
     const result = read();
     const errors = result.diagnostics.filter((d) => d.severity === 'error');
@@ -158,17 +209,99 @@ describe('ClaudeCliReader', () => {
     expect(finished[0].endMs).toBe(at('2026-07-19T09:04:00Z'));
   });
 
-  it('leaves earlier segments closed when only the last one is active', () => {
-    // S3 has three segments; none is registered as live, so all are closed.
-    const segments = launchOf(read({ alivePids: [4242] }), S3);
-    expect(segments.every((i) => i.endMs !== null)).toBe(true);
+  it('leaves only the last segment open for an active multi-segment launch', () => {
+    // S3 is registered live under pid 5151 and has three directory segments.
+    const segments = segmentsOf(read({ alivePids: [5151] }), S3);
+    expect(segments).toHaveLength(3);
+    expect(segments.slice(0, -1).every((i) => i.endMs !== null)).toBe(true);
+    expect(segments[segments.length - 1].endMs).toBeNull();
+
+    const closed = segmentsOf(read(), S3);
+    expect(closed.every((i) => i.endMs !== null)).toBe(true);
+  });
+
+  it('does not let a stale registry entry mask a live one', () => {
+    // sessions/9150.json is a stale file naming S3 with a dead pid, and it is
+    // read after the live entry (5151.json), so keeping only the last entry per
+    // session would report the running launch as finished.
+    expect(segmentsOf(read({ alivePids: [5151] }), S3).at(-1)?.endMs).toBeNull();
+    // With neither process alive the launch is finished.
+    expect(segmentsOf(read(), S3).at(-1)?.endMs).not.toBeNull();
   });
 
   it('never puts record content into diagnostics', () => {
-    for (const diagnostic of read().diagnostics) {
-      const serialized = JSON.stringify(diagnostic);
-      expect(serialized).not.toContain('role');
-      expect(serialized).not.toContain('message');
+    const allowed = new Set([
+      'provider',
+      'interfaceId',
+      'sessionId',
+      'filePath',
+      'eventType',
+      'timestampMs',
+      'reason',
+      'severity',
+    ]);
+    const diagnostics = read().diagnostics;
+    expect(diagnostics.length).toBeGreaterThan(0);
+    for (const diagnostic of diagnostics) {
+      expect(Object.keys(diagnostic).every((k) => allowed.has(k))).toBe(true);
     }
+  });
+});
+
+describe('isHumanPrompt', () => {
+  const base: ClaudeTranscriptRecord = {
+    type: 'user',
+    timestamp: '2026-07-15T09:00:00Z',
+  };
+
+  it.each<[string, ClaudeTranscriptRecord, boolean]>([
+    ['typed prompt', { ...base, promptSource: 'typed' }, true],
+    ['queued prompt', { ...base, promptSource: 'queued' }, true],
+    ['accepted suggestion', { ...base, promptSource: 'suggestion_accepted' }, true],
+    ['no promptSource recorded', { ...base }, true],
+    ['system-injected notification', { ...base, promptSource: 'system' }, false],
+    ['programmatic SDK prompt', { ...base, promptSource: 'sdk' }, false],
+    ['meta record', { ...base, promptSource: 'typed', isMeta: true }, false],
+    ['sidechain record', { ...base, promptSource: 'typed', isSidechain: true }, false],
+    ['tool result', { ...base, toolUseResult: { ok: true } }, false],
+    ['tool-sourced record', { ...base, sourceToolAssistantUUID: 'a1' }, false],
+    ['tool-use-sourced record', { ...base, sourceToolUseID: 'toolu_1' }, false],
+    ['assistant record', { ...base, type: 'assistant' }, false],
+  ])('classifies %s', (_name, record, expected) => {
+    expect(isHumanPrompt(record)).toBe(expected);
+  });
+});
+
+describe('isAgentActivity', () => {
+  it('counts assistant records and tool results only', () => {
+    expect(isAgentActivity({ type: 'assistant' })).toBe(true);
+    expect(isAgentActivity({ type: 'user', toolUseResult: { ok: true } })).toBe(
+      true,
+    );
+    expect(isAgentActivity({ type: 'user', promptSource: 'typed' })).toBe(false);
+    expect(isAgentActivity({ type: 'file-history-delta' })).toBe(false);
+  });
+});
+
+describe('procStartFromStat', () => {
+  /** Builds a `/proc/<pid>/stat` line with the given comm and starttime. */
+  function statLine(comm: string, startTime: string): string {
+    const before = ['1234', `(${comm})`, 'S'];
+    // Fields 4..21 (18 values) precede starttime, which is field 22.
+    const filler = Array.from({ length: 18 }, (_, i) => String(i));
+    return `${before.join(' ')} ${filler.join(' ')} ${startTime} rest of line\n`;
+  }
+
+  it('reads field 22 for a simple process name', () => {
+    expect(procStartFromStat(statLine('node', '585274575'))).toBe('585274575');
+  });
+
+  it('reads field 22 when the process name contains spaces and parentheses', () => {
+    expect(procStartFromStat(statLine('weird (name) x', '42'))).toBe('42');
+  });
+
+  it('returns undefined for a malformed line', () => {
+    expect(procStartFromStat('not a stat line')).toBeUndefined();
+    expect(procStartFromStat('1234 (node) S 1 2 3')).toBeUndefined();
   });
 });

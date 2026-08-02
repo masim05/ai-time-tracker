@@ -77,6 +77,9 @@ Out of scope:
 - Any other entrypoint (observed: `sdk-cli`) is an embedded Agent-SDK driver,
   out of scope per #3. Those sessions are skipped and reported as a single
   aggregated `warning` diagnostic carrying only a count — exit code stays `0`.
+- A transcript recording no `entrypoint` at all cannot be confirmed as
+  developer-invoked. It is skipped too, but reported under its own factual
+  reason rather than being described as an Agent-SDK session.
 - Sub-agents inherit `claude-cli` from their parent launch.
 
 ### Launch identity
@@ -109,6 +112,10 @@ command stdout) and `sdk` records are not human input.
 - A prompt submitted while work is still running ends the previous span at the
   last recorded activity, which is how cancellations and interruptions are
   counted (through their last recorded timestamp).
+- A span that crosses a directory change is split at the boundary, so work
+  recorded after the change is attributed to the new directory rather than to
+  the one the prompt was submitted from. No span outlives the invocation that
+  owns it.
 - Sub-agent spans run from the sub-agent transcript's first to last record and
   are additive with the parent, including overlaps.
 
@@ -130,10 +137,12 @@ command stdout) and `sdk` records are not human input.
 
 ### Active sessions
 
-- A launch is active when `~/.claude/sessions/<pid>.json` names its `sessionId`,
-  the PID is alive, and the recorded `procStart` matches the running process
-  start time (PID-reuse guard). On platforms without `/proc`, liveness alone is
-  used and the guard is skipped.
+- A launch is active when some `~/.claude/sessions/<pid>.json` names its
+  `sessionId`, that PID is alive, and the recorded `procStart` matches the
+  running process start time (PID-reuse guard). Several entries may name the
+  same session — a stale file left by a crashed process beside the live one — so
+  all of them are kept and any live entry makes the launch active. On platforms
+  without `/proc`, liveness alone is used and the guard is skipped.
 - Only the last segment of an active launch has `endMs = null`.
 - Active launches are not malformed. A completed launch always has a reliable
   end (its last record timestamp).

@@ -107,6 +107,7 @@ export class ClaudeCliReader implements ISessionReader {
 
     const sessions: ParsedSession[] = [];
     let skippedNonCli = 0;
+    let skippedUnknownEntrypoint = 0;
 
     for (const projectDir of projectDirs) {
       if (!projectDir.isDirectory()) {
@@ -137,7 +138,12 @@ export class ClaudeCliReader implements ISessionReader {
         if (records === null || records.length === 0) {
           continue;
         }
-        if (entrypointOf(records) !== 'cli') {
+        const entrypoint = entrypointOf(records);
+        if (entrypoint === undefined) {
+          skippedUnknownEntrypoint++;
+          continue;
+        }
+        if (entrypoint !== 'cli') {
           skippedNonCli++;
           continue;
         }
@@ -170,6 +176,16 @@ export class ClaudeCliReader implements ISessionReader {
         reason:
           `${skippedNonCli} session(s) skipped: driven by an embedded Agent SDK ` +
           '(entrypoint other than "cli"), which is out of scope for this report',
+        severity: 'warning',
+      });
+    }
+
+    if (skippedUnknownEntrypoint > 0) {
+      diagnostics.push({
+        provider: 'claude',
+        reason:
+          `${skippedUnknownEntrypoint} session(s) skipped: no entrypoint recorded, ` +
+          'so the session could not be confirmed as developer-invoked',
         severity: 'warning',
       });
     }
@@ -275,7 +291,7 @@ export class ClaudeCliReader implements ISessionReader {
 
     const segments: Segment[] = [];
     let current: Segment | null = null;
-    const prompts: { ts: number; segment: Segment }[] = [];
+    const prompts: number[] = [];
     const activity: number[] = [];
 
     // Metadata records (file-history deltas, queue operations) carry no `cwd`;
@@ -307,7 +323,7 @@ export class ClaudeCliReader implements ISessionReader {
 
       if (isHumanPrompt(record)) {
         current.promptsMs.push(ts);
-        prompts.push({ ts, segment: current });
+        prompts.push(ts);
       } else if (isAgentActivity(record)) {
         activity.push(ts);
       }
@@ -316,16 +332,18 @@ export class ClaudeCliReader implements ISessionReader {
     // A span runs from a prompt to the last agent activity before the next
     // prompt: cancellations and interruptions are counted through their last
     // recorded activity, and a prompt with no activity yields a zero-length span.
+    // A span that crosses a directory change is split at the boundary so each
+    // part is attributed to the directory the work was recorded in.
     for (let i = 0; i < prompts.length; i++) {
-      const start = prompts[i].ts;
-      const limit = i + 1 < prompts.length ? prompts[i + 1].ts : Number.POSITIVE_INFINITY;
+      const start = prompts[i];
+      const limit = i + 1 < prompts.length ? prompts[i + 1] : Number.POSITIVE_INFINITY;
       let end = start;
       for (const ts of activity) {
         if (ts >= start && ts < limit && ts > end) {
           end = ts;
         }
       }
-      prompts[i].segment.spans.push({ startMs: start, endMs: end });
+      assignSpanToSegments({ startMs: start, endMs: end }, segments);
     }
 
     const rootId = session.sessionId;
@@ -417,8 +435,8 @@ export class ClaudeCliReader implements ISessionReader {
   /** Indexes `sessions/<pid>.json` entries by session id. */
   private readSessionRegistry(
     diagnostics: Diagnostic[],
-  ): Map<string, SessionRegistryEntry> {
-    const registry = new Map<string, SessionRegistryEntry>();
+  ): Map<string, SessionRegistryEntry[]> {
+    const registry = new Map<string, SessionRegistryEntry[]>();
     const dir = path.join(this.baseDir, 'sessions');
     let entries: string[];
     try {
@@ -439,10 +457,11 @@ export class ClaudeCliReader implements ISessionReader {
           procStart?: string;
         };
         if (typeof parsed.sessionId === 'string' && typeof parsed.pid === 'number') {
-          registry.set(parsed.sessionId, {
-            pid: parsed.pid,
-            procStart: parsed.procStart,
-          });
+          // Several entries can name the same session (a stale file left by a
+          // crashed process next to the live one), so keep them all.
+          const entries = registry.get(parsed.sessionId) ?? [];
+          entries.push({ pid: parsed.pid, procStart: parsed.procStart });
+          registry.set(parsed.sessionId, entries);
         }
       } catch {
         diagnostics.push({
@@ -459,13 +478,42 @@ export class ClaudeCliReader implements ISessionReader {
 
   private isSessionActive(
     sessionId: string,
-    registry: Map<string, SessionRegistryEntry>,
+    registry: Map<string, SessionRegistryEntry[]>,
   ): boolean {
-    const entry = registry.get(sessionId);
-    if (!entry) {
-      return false;
+    const entries = registry.get(sessionId) ?? [];
+    return entries.some((entry) => this.isPidAlive(entry.pid, entry.procStart));
+  }
+}
+
+/**
+ * Splits one agent span across the directory segments it covers, so work
+ * recorded after a directory change is attributed to the new directory. Each
+ * segment owns `[its first record, the next segment's first record)`; the
+ * segment's end is extended to cover the work assigned to it.
+ */
+function assignSpanToSegments(span: WorkInterval, segments: Segment[]): void {
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
+    const segmentStart = segment.startMs;
+    const segmentEnd =
+      i + 1 < segments.length ? segments[i + 1].startMs : Number.POSITIVE_INFINITY;
+
+    if (span.startMs === span.endMs) {
+      // A prompt with no response belongs to the segment that contains it.
+      if (span.startMs >= segmentStart && span.startMs < segmentEnd) {
+        segment.spans.push({ startMs: span.startMs, endMs: span.endMs });
+        return;
+      }
+      continue;
     }
-    return this.isPidAlive(entry.pid, entry.procStart);
+
+    const startMs = Math.max(span.startMs, segmentStart);
+    const endMs = Math.min(span.endMs, segmentEnd);
+    if (endMs <= startMs) {
+      continue;
+    }
+    segment.spans.push({ startMs, endMs });
+    segment.endMs = Math.max(segment.endMs, endMs);
   }
 }
 
@@ -553,15 +601,32 @@ function defaultIsPidAlive(pid: number, procStart?: string): boolean {
   if (procStart === undefined) {
     return true;
   }
+  let stat: string;
   try {
-    const stat = fs.readFileSync(`/proc/${pid}/stat`, 'utf8');
-    // Field 2 (comm) may contain spaces and parentheses; parse after it.
-    const afterComm = stat.slice(stat.lastIndexOf(')') + 2).split(' ');
-    // Fields resume at index 0 == field 3, so field 22 is index 19.
-    const startTime = afterComm[19];
-    return startTime === undefined || startTime === procStart;
+    stat = fs.readFileSync(`/proc/${pid}/stat`, 'utf8');
   } catch {
     // No procfs (for example macOS): fall back to liveness alone.
     return true;
   }
+  const startTime = procStartFromStat(stat);
+  return startTime === undefined || startTime === procStart;
+}
+
+/**
+ * Extracts field 22 (`starttime`) from the contents of `/proc/<pid>/stat`,
+ * which is what Claude Code records as `procStart`. Field 2 (`comm`) is
+ * parenthesised and may itself contain spaces and parentheses, so parsing
+ * resumes after its final `)`. Returns `undefined` when the line is malformed.
+ */
+export function procStartFromStat(stat: string): string | undefined {
+  const commEnd = stat.lastIndexOf(')');
+  if (commEnd === -1) {
+    return undefined;
+  }
+  const fields = stat
+    .slice(commEnd + 1)
+    .trim()
+    .split(/\s+/);
+  // `fields[0]` is field 3 (state), so field 22 is at index 19.
+  return fields[19];
 }

@@ -47,4 +47,13 @@ describe('FilterService agent values for Claude', () => {
       /Unknown agent value.*claude-cli.*claude/s,
     );
   });
+
+  it.each(['constructor', 'toString', '__proto__', 'valueOf'])(
+    'treats the inherited property %s as an unknown agent value',
+    (value) => {
+      expect(() => FilterService.resolveAgentFilters([value])).toThrow(
+        /Unknown agent value/,
+      );
+    },
+  );
 });
