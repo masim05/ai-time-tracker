@@ -1,0 +1,7 @@
+{"type": "user", "uuid": "v1", "sessionId": "s3-3333-3333-3333-333333333333", "timestamp": "2026-07-16T09:00:00Z", "cwd": "/work/alpha", "entrypoint": "cli", "isSidechain": false, "promptSource": "typed", "message": {"role": "user"}}
+{"type": "assistant", "uuid": "b1", "sessionId": "s3-3333-3333-3333-333333333333", "timestamp": "2026-07-16T09:02:00Z", "cwd": "/work/alpha", "entrypoint": "cli", "isSidechain": false, "message": {"role": "assistant"}}
+{"type": "file-history-delta", "uuid": "m1", "sessionId": "s3-3333-3333-3333-333333333333", "timestamp": "2026-07-16T09:04:00Z", "entrypoint": "cli"}
+{"type": "user", "uuid": "v2", "sessionId": "s3-3333-3333-3333-333333333333", "timestamp": "2026-07-16T09:10:00Z", "cwd": "/work/alpha/tmp/wts/task", "entrypoint": "cli", "isSidechain": false, "promptSource": "typed", "message": {"role": "user"}}
+{"type": "assistant", "uuid": "b2", "sessionId": "s3-3333-3333-3333-333333333333", "timestamp": "2026-07-16T09:16:00Z", "cwd": "/work/alpha/tmp/wts/task", "entrypoint": "cli", "isSidechain": false, "message": {"role": "assistant"}}
+{"type": "user", "uuid": "v3", "sessionId": "s3-3333-3333-3333-333333333333", "timestamp": "2026-07-16T09:20:00Z", "cwd": "/work/omega", "entrypoint": "cli", "isSidechain": false, "promptSource": "typed", "message": {"role": "user"}}
+{"type": "assistant", "uuid": "b3", "sessionId": "s3-3333-3333-3333-333333333333", "timestamp": "2026-07-16T09:24:00Z", "cwd": "/work/omega", "entrypoint": "cli", "isSidechain": false, "message": {"role": "assistant"}}

@@ -7,10 +7,14 @@
  */
 
 /** High-level provider family. */
-export type ProviderId = 'copilot' | 'codex';
+export type ProviderId = 'copilot' | 'codex' | 'claude';
 
 /** Concrete provider interface (agent value used in the report). */
-export type InterfaceId = 'copilot-cli' | 'codex-cli' | 'codex-app';
+export type InterfaceId =
+  | 'copilot-cli'
+  | 'codex-cli'
+  | 'codex-app'
+  | 'claude-cli';
 
 /** A half-open-agnostic work interval in epoch milliseconds. */
 export interface WorkInterval {
@@ -35,6 +39,13 @@ export interface NormalizedInvocation {
   readonly cwd?: string;
   /** True when this invocation is the launch root. */
   readonly isRoot: boolean;
+  /**
+   * Explicit sub-agent marker. Readers that split a single launch into several
+   * invocations for reasons other than sub-agents (for example one segment per
+   * working directory) set this to `false` so those segments are not counted as
+   * sub-agents. When omitted, `!isRoot` is assumed.
+   */
+  readonly isSubagent?: boolean;
   /** Human prompt submission timestamps (ms). Only populated for user-driven work. */
   readonly promptsMs: readonly number[];
   /** Agent work intervals (ms). Additive across parent and children. */

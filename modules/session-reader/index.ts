@@ -18,3 +18,10 @@ export {
   CodexReaderOptions,
   resolveRoot,
 } from './src/infrastructure/codexReader';
+export {
+  ClaudeCliReader,
+  ClaudeCliReaderOptions,
+  ClaudeTranscriptRecord,
+  isAgentActivity,
+  isHumanPrompt,
+} from './src/infrastructure/claudeCliReader';

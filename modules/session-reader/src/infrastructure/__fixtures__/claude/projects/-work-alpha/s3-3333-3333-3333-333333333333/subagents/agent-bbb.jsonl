@@ -1,0 +1,2 @@
+{"type": "user", "uuid": "sa2-1", "sessionId": "s3-3333-3333-3333-333333333333", "agentId": "agent-bbb", "timestamp": "2026-07-16T09:21:00Z", "cwd": "/work/omega", "entrypoint": "cli", "isSidechain": true, "message": {"role": "user"}}
+{"type": "assistant", "uuid": "sa2-2", "sessionId": "s3-3333-3333-3333-333333333333", "agentId": "agent-bbb", "timestamp": "2026-07-16T09:23:00Z", "cwd": "/work/omega", "entrypoint": "cli", "isSidechain": true, "message": {"role": "assistant"}}
