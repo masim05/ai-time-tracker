@@ -18,3 +18,7 @@ export {
   CodexReaderOptions,
   resolveRoot,
 } from './src/infrastructure/codexReader';
+export {
+  ClaudeCliReader,
+  ClaudeCliReaderOptions,
+} from './src/infrastructure/claudeCliReader';

@@ -132,8 +132,11 @@ function buildLaunchRows(
   const mainRoot = effRoot(root);
   const mainKey = `${root.interfaceId}\u0000${mainRoot}`;
 
-  // Sub-agent count is launch-level: all non-root invocations.
-  const subagentCount = invs.filter((i) => !i.isRoot).length;
+  // Sub-agent count is launch-level. Readers that split a launch into several
+  // invocations for other reasons (for example one segment per working
+  // directory) mark those segments with `isSubagent: false`; readers that do
+  // not set the marker keep the original "every non-root invocation" meaning.
+  const subagentCount = invs.filter((i) => i.isSubagent ?? !i.isRoot).length;
 
   const rows: ReportRow[] = [];
   for (const [key, group] of groups.entries()) {

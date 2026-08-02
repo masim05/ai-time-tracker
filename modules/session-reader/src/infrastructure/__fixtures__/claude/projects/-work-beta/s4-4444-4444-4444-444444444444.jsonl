@@ -1,0 +1,2 @@
+{"type": "user", "uuid": "w1", "sessionId": "s4-4444-4444-4444-444444444444", "timestamp": "2026-07-17T09:00:00Z", "cwd": "/work/omega", "entrypoint": "sdk-cli", "isSidechain": false, "promptSource": "sdk", "message": {"role": "user"}}
+{"type": "assistant", "uuid": "w2", "sessionId": "s4-4444-4444-4444-444444444444", "timestamp": "2026-07-17T09:05:00Z", "cwd": "/work/omega", "entrypoint": "sdk-cli", "isSidechain": false, "message": {"role": "assistant"}}

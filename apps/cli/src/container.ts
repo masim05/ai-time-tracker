@@ -1,6 +1,7 @@
 import * as os from 'os';
 import * as path from 'path';
 import {
+  ClaudeCliReader,
   CopilotCliReader,
   CodexReader,
   Diagnostic,
@@ -26,6 +27,7 @@ export function createReportDeps(options: ContainerOptions = {}): ReportDeps {
   const readers = [
     new CopilotCliReader({ baseDir: path.join(homeDir, '.copilot') }),
     new CodexReader({ baseDir: path.join(homeDir, '.codex') }),
+    new ClaudeCliReader({ baseDir: path.join(homeDir, '.claude') }),
   ];
 
   return {

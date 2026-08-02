@@ -189,7 +189,7 @@ export function buildReportCommand(deps: ReportDeps): Command {
     )
     .option(
       '-a, --agent <agent>',
-      'Only include this agent: copilot-cli, codex-cli, codex-app, copilot, codex (repeatable).',
+      'Only include this agent: copilot-cli, codex-cli, codex-app, claude-cli, copilot, codex, claude (repeatable).',
       collect,
       [],
     )
@@ -235,6 +235,17 @@ const columnDocs = COLUMNS.map((c) => `    ${c.id.padEnd(13)} ${c.help}`).join(
 
 /** Detailed help appended to `report --help`. */
 export const REPORT_HELP = `
+Agents (--agent):
+  Exact interfaces: copilot-cli, codex-cli, codex-app, claude-cli.
+  Families: copilot, codex, claude. Repeat --agent to select several; the
+  selections are unioned and never duplicate a row.
+  claude-cli covers developer-invoked Claude Code CLI sessions, including its
+  background jobs. Sessions driven by an embedded Agent SDK are out of scope
+  and are reported as a skipped count instead.
+  claude-app and claude-vsc are not supported: no local session data for the
+  Claude desktop application or VS Code integration could be discovered on
+  Linux or macOS. Selecting them is a usage error rather than an empty report.
+
 Datetime formats (--from / --to):
   ISO 8601 (with offset/Z), YYYYMMDD, YYYYMMDD-HHmm, YYYYMMDD-HHmmss,
   YYYY-MM-DD, YYYY-MM-DD-HHmm, YYYY-MM-DD-HHmmss.

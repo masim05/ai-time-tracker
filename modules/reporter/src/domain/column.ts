@@ -62,7 +62,7 @@ export const COLUMNS: readonly ColumnSpec[] = [
   {
     id: 'agent',
     header: 'agent',
-    help: 'Agent interface (copilot-cli, codex-cli, codex-app).',
+    help: 'Agent interface (copilot-cli, codex-cli, codex-app, claude-cli).',
     kind: 'text',
     accessor: (r) => r.agent,
   },

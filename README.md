@@ -5,10 +5,10 @@ This repository is an AI-friendly project template for teams working in GitLab w
 ## Cross-Agent Session Activity Report
 
 `ai-time-tracker` includes a read-only CLI that reports agent-time,
-human-active, inactive, and elapsed time across local GitHub Copilot CLI and
-Codex (CLI and App) sessions. All access is read-only and offline; no session
-content (prompts, responses, source code, or tool output) is read into
-diagnostics.
+human-active, inactive, and elapsed time across local GitHub Copilot CLI,
+Codex (CLI and App), and Claude Code CLI sessions. All access is read-only and
+offline; no session content (prompts, responses, source code, or tool output) is
+read into diagnostics.
 
 ### Install and build
 
@@ -36,6 +36,29 @@ npm run cli -- report --help
   from the defaults, or list explicit column ids to replace them.
 - `-v, --verbose` — emit content-free diagnostics (provider, session id, file
   path, event type, timestamp, reason).
+
+### Supported agent interfaces
+
+| Value | Source | Notes |
+| --- | --- | --- |
+| `copilot-cli` | `~/.copilot/session-state/` | |
+| `codex-cli`, `codex-app` | `~/.codex/` | |
+| `claude-cli` | `~/.claude/projects/` | Developer-invoked Claude Code CLI, including its background jobs and sub-agents. |
+
+Family selectors `copilot`, `codex`, and `claude` expand to their interfaces;
+repeat `--agent` to select several.
+
+Claude storage limitations:
+
+- Sessions driven by an embedded Agent SDK (any `entrypoint` other than `cli`)
+  are out of scope, as are Slack and CI agents. They are skipped and reported as
+  a counted warning, never silently dropped.
+- Resuming a session rewrites the previous launch's records into a new
+  transcript; each record is counted once, for the launch that recorded it first.
+- `claude-app` and `claude-vsc` are **not supported**: no local session data for
+  the Claude desktop application or VS Code integration could be discovered on
+  Linux or macOS. Selecting them is a usage error rather than an empty report.
+  See `docs/architecture/decisions/ADR-0003-claude-session-storage.md`.
 
 Accepted date/time formats: `YYYYMMDD`, `YYYYMMDD-HHmm`, `YYYYMMDD-HHmmss`,
 `YYYY-MM-DD`, `YYYY-MM-DD-HHmm`, `YYYY-MM-DD-HHmmss`, and ISO 8601. A missing
