@@ -32,8 +32,9 @@ $ npm run cli -- report -a codex -f 2026-08-01 -t 2026-08-01-235959
 launch  agent      path                 human  agent-time  start             duration  subagents
 4baf32  codex-cli  ~/src/my-api            7m        34m   2026-08-01 09:12      58m          1
 9e10a7  codex-app  ~/src/my-api            2m        11m   2026-08-01 13:44      23m          0
------------------------------------------------------------------------------------------------
-total                                   9m        45m
+ab72fd  claude-cli ~/src/my-api            5m      1h47m   2026-08-01 16:20    1h08m          4
+------------------------------------------------------------------------------------------------
+total                                  14m      2h32m
 ```
 
 ### Options
