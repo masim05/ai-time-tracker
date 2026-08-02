@@ -1,18 +1,54 @@
-# project-template
+# ai-time-tracker
 
 This repository is an AI-friendly project template for teams working in GitLab with multiple coding assistants.
 
+## Cross-Agent Session Activity Report
+
+`ai-time-tracker` includes a read-only CLI that reports agent-time,
+human-active, inactive, and elapsed time across local GitHub Copilot CLI and
+Codex (CLI and App) sessions. All access is read-only and offline; no session
+content (prompts, responses, source code, or tool output) is read into
+diagnostics.
+
+### Install and build
+
+```bash
+npm install
+npm run build      # optional: compile to dist/ for a production run
+```
+
+### Run
+
+```bash
+npm run cli -- report [options]
+npm run cli -- --help
+npm run cli -- report --help
+```
+
+### Options
+
+- `-f, --from <when>` — start of the report period (inclusive).
+- `-t, --to <when>` — end of the report period (inclusive).
+- `-o, --output <format>` — `table` (default), `json`, or `csv`.
+- `-p, --path <dir>` — restrict to launches under a directory (repeatable).
+- `-a, --agent <name>` — restrict to interfaces/providers (repeatable).
+- `-c, --columns <list>` — choose columns; prefix with `+`/`-` to add/remove
+  from the defaults, or list explicit column ids to replace them.
+- `-v, --verbose` — emit content-free diagnostics (provider, session id, file
+  path, event type, timestamp, reason).
+
+Accepted date/time formats: `YYYYMMDD`, `YYYYMMDD-HHmm`, `YYYYMMDD-HHmmss`,
+`YYYY-MM-DD`, `YYYY-MM-DD-HHmm`, `YYYY-MM-DD-HHmmss`, and ISO 8601. A missing
+time defaults to `00:00:00`; a missing timezone uses local time; a
+DST-ambiguous local time without an offset is rejected.
+
+Default columns: `launch, agent, path, human, agent-time, start,
+duration, subagents`. Run `npm run cli -- report --help` for the full 16-column catalog.
+
+Exit codes: `0` success, `1` partial failure (some sources unreadable), `2`
+invalid usage.
+
 ## AI Flow: Required Setup
-
-### Project Setup Required
-
-This template is intentionally generic and does not include a project-specific architecture or testing policy.
-
-Before implementing the first feature:
-
-1. Define and document your project architecture in `docs/architecture/`.
-2. Define and document your project testing policy in `docs/engineering/testing-policy.md`.
-3. Delete this section after both documents are in place.
 
 ### 1. Install dependencies
 

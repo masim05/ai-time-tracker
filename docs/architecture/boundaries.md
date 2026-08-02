@@ -22,6 +22,26 @@ This document defines module boundaries, dependency rules, public API policy, da
 | `application/` | `cli/` | Application must not know about CLI argument parsing or output formatting |
 | Any zone | CLI framework/persistence driver/OS SDK | These belong only in `infrastructure/` and `cli/` |
 
+## Application Code Layout
+
+Application code lives under `modules/` (reusable domains) and `apps/` (deployable entrypoints). Each module follows a hexagonal layout:
+
+```txt
+modules/<name>/src/
+  domain/          # pure models and pure logic
+  application/     # ports (interfaces) and use-case services (pure)
+  infrastructure/  # adapters: all file, SQLite, and external I/O
+  cli/             # Commander commands and output formatting
+```
+
+Zone rules (enforced by review):
+
+- `domain/` and `application/` MUST NOT import Commander, better-sqlite3, `node:fs`, `node:path`, or any external SDK. They contain only pure logic.
+- All file and SQLite access lives in `infrastructure/`.
+- All Commander.js wiring and human-facing formatting live in `cli/`.
+- `apps/` performs dependency-injection wiring and hosts `bin` entrypoints; it depends on modules, never the reverse.
+- Modules depend on other modules only through their published `index.ts`.
+
 ## Cross-Module Boundary Rules
 
 ### Public Module API

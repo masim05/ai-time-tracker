@@ -1,0 +1,11 @@
+{"type":"session.start","id":"e0","parentId":null,"timestamp":"2026-08-01T10:00:00.000Z","data":{"sessionId":"11111111-1111-1111-1111-111111111111","startTime":"2026-08-01T10:00:00.000Z"}}
+{"type":"user.message","id":"e1","parentId":"e0","timestamp":"2026-08-01T10:01:00.000Z","data":{"content":"","interactionId":"i1"}}
+{"type":"assistant.turn_start","id":"e2","parentId":"e1","timestamp":"2026-08-01T10:01:01.000Z","data":{"turnId":"tn1","model":"m"}}
+{"type":"tool.execution_start","id":"e3","parentId":"e2","timestamp":"2026-08-01T10:01:02.000Z","data":{"toolCallId":"tc1","toolName":"x","turnId":"tn1"}}
+{"type":"tool.execution_complete","id":"e4","parentId":"e2","timestamp":"2026-08-01T10:01:03.000Z","data":{"toolCallId":"tc1","success":false,"turnId":"tn1"}}
+{"type":"assistant.turn_end","id":"e5","parentId":"e2","timestamp":"2026-08-01T10:03:00.000Z","data":{"turnId":"tn1","model":"m"}}
+{"type":"subagent.started","id":"e6","parentId":"e2","agentId":"call_1","timestamp":"2026-08-01T10:04:00.000Z","data":{"toolCallId":"call_1","agentName":"sub"}}
+{"type":"user.message","id":"e7","parentId":"e6","timestamp":"2026-08-01T10:04:30.000Z","data":{"content":"","parentAgentTaskId":"call_1"}}
+{"type":"subagent.completed","id":"e8","parentId":"e2","agentId":"call_1","timestamp":"2026-08-01T10:06:00.000Z","data":{"toolCallId":"call_1","durationMs":120000}}
+{"type":"assistant.turn_start","id":"e9","parentId":"e1","timestamp":"2026-08-01T10:07:00.000Z","data":{"turnId":"tn2","model":"m"}}
+{"type":"abort","id":"e10","parentId":"e9","timestamp":"2026-08-01T10:07:30.000Z","data":{"reason":"cancelled"}}
