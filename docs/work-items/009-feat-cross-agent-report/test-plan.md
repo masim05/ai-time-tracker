@@ -79,7 +79,7 @@
 
 ### 8. Output format tests
 - [ ] Table: aligned columns, `~` home substitution, duration format (`0m`, `3m`, `10h3m`, `2d10h3m`)
-- [ ] Table: local timestamp format `2026-08-01 17:01:46`
+- [ ] Table: local timestamp format `2026-08-01 17:01`
 - [ ] JSON: array of objects, integer-minute durations, ISO 8601 with UTC offset
 - [ ] JSON: empty result → `[]`
 - [ ] JSON: active session `actual-end` → `null`

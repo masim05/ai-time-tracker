@@ -134,7 +134,7 @@ Each row = `launch × agent × effective working-directory root`
 Launch ID: deterministic hash of full launch identity (≤ 6 chars displayed; full ID in `launch-id`)
 
 ## Output formats
-- **table**: vertically aligned, local timestamps `2026-08-01 17:01:46`, durations `0m / 3m / 10h3m`
+- **table**: vertically aligned, local timestamps `2026-08-01 17:01`, durations `0m / 3m / 10h3m`
 - **json**: array of objects; durations = integer minutes; timestamps ISO 8601 with UTC offset
 - **csv**: header + rows; same numeric/ISO conventions
 
