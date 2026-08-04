@@ -123,4 +123,56 @@ describe('GroupingService', () => {
     expect(rows[0].actualStartMs).toBe(0);
     expect(rows[0].actualEndMs).toBe(10 * MIN);
   });
+
+  it('splits rows at temporal name boundaries and keeps launch identity', () => {
+    const rows = GroupingService.build(
+      [
+        inv({
+          launchRootId: 'Lx',
+          invocationId: 'Lx',
+          cwd: '/home/dev/app',
+          promptsMs: [0],
+          agentSpans: [{ startMs: 0, endMs: 8 * MIN }],
+          startMs: 0,
+          endMs: 8 * MIN,
+          sessionNameEvents: [
+            { timestampMs: 2 * MIN, name: 'alpha' },
+            { timestampMs: 4 * MIN, name: 'beta' },
+            { timestampMs: 6 * MIN, name: 'alpha' },
+          ],
+        }),
+      ],
+      FULL,
+    );
+
+    expect(rows).toHaveLength(4);
+    expect(rows.map((r) => r.name)).toEqual([null, 'alpha', 'beta', 'alpha']);
+    expect(rows.map((r) => r.startMs)).toEqual([0, 2 * MIN, 4 * MIN, 6 * MIN]);
+    expect(rows.map((r) => r.endMs)).toEqual([2 * MIN, 4 * MIN, 6 * MIN, 8 * MIN]);
+    expect(new Set(rows.map((r) => r.launchId))).toEqual(new Set(['Lx']));
+  });
+
+  it('does not create a new segment when a rename repeats the active name', () => {
+    const rows = GroupingService.build(
+      [
+        inv({
+          launchRootId: 'Ly',
+          invocationId: 'Ly',
+          cwd: '/home/dev/app',
+          agentSpans: [{ startMs: 0, endMs: 6 * MIN }],
+          startMs: 0,
+          endMs: 6 * MIN,
+          sessionNameEvents: [
+            { timestampMs: 2 * MIN, name: 'alpha' },
+            { timestampMs: 3 * MIN, name: 'alpha' },
+          ],
+        }),
+      ],
+      FULL,
+    );
+
+    expect(rows).toHaveLength(2);
+    expect(rows.map((r) => r.name)).toEqual([null, 'alpha']);
+    expect(rows.map((r) => r.startMs)).toEqual([0, 2 * MIN]);
+  });
 });

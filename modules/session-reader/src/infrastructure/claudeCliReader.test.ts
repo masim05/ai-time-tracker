@@ -73,6 +73,11 @@ describe('ClaudeCliReader', () => {
     expect(root.cwd).toBe('/work/alpha');
     expect(root.startMs).toBe(at('2026-07-15T09:00:00Z'));
     expect(root.endMs).toBe(at('2026-07-15T09:17:00Z'));
+    expect(root.sessionNameEvents).toEqual([
+      { timestampMs: at('2026-07-15T09:00:00Z'), name: 'alpha' },
+      { timestampMs: at('2026-07-15T09:10:00Z'), name: 'beta' },
+      { timestampMs: at('2026-07-15T09:12:00Z'), name: 'beta' },
+    ]);
   });
 
   it('counts only developer prompts, not injected or tool-result records', () => {

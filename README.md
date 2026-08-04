@@ -77,11 +77,21 @@ Accepted date/time formats: `YYYYMMDD`, `YYYYMMDD-HHmm`, `YYYYMMDD-HHmmss`,
 time defaults to `00:00:00`; a missing timezone uses local time; a
 DST-ambiguous local time without an offset is rejected.
 
-Default columns: `launch, agent, path, human, agent-time, start,
-duration, subagents`. Run `npm run cli -- report --help` for the full 16-column catalog.
+Default columns: `agent, path, name, human, agent-time, start,
+duration, subagents`. Run `npm run cli -- report --help` for the full 17-column catalog.
 
 Exit codes: `0` success, `1` partial failure (some sources unreadable), `2`
 invalid usage.
+
+Session-name behavior:
+
+- `name` reports the explicit provider-persisted session name active during each
+  row's time segment.
+- Name rows split at persisted rename boundaries when timestamped history is
+  available.
+- If a provider exposes only latest-name metadata, the latest explicit name is
+  applied launch-wide with a warning; historical boundaries are unavailable.
+- Unset names render as `-` (table), `null` (JSON), and an empty field (CSV).
 
 ## AI Flow: Required Setup
 

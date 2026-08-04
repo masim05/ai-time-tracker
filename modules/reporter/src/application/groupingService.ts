@@ -1,6 +1,8 @@
 import {
   NormalizedInvocation,
+  SessionNameEvent,
   WorkInterval,
+  clipInterval,
 } from '../../../session-reader';
 import { ReportRow } from '../domain/reportRow';
 import { isUnderOrEqual, normalizePath } from '../domain/pathUtils';
@@ -12,11 +14,7 @@ const UNKNOWN = '\u0000unknown';
  * Groups normalized invocations into report rows.
  *
  * Row identity is `launch × agent (interface) × effective working-directory
- * root`. Descendants whose working directory is under their effective parent
- * root are absorbed into that root; a sub-agent in an unrelated directory
- * starts its own row. Human-active, inactive, elapsed, and launch boundaries
- * are launch-level values attributed to the main root's row and repeated
- * (non-additively) onto other rows of the same launch.
+ * root × temporal session-name segment`.
  */
 export const GroupingService = {
   build(
@@ -32,12 +30,17 @@ export const GroupingService = {
 
     const rows: ReportRow[] = [];
     for (const [launchId, invs] of byLaunch.entries()) {
-      const built = buildLaunchRows(launchId, invs, period);
-      rows.push(...built);
+      rows.push(...buildLaunchRows(launchId, invs, period));
     }
     return rows;
   },
 };
+
+interface NameSegment {
+  readonly startMs: number;
+  readonly endMs: number;
+  readonly name: string | null;
+}
 
 function buildLaunchRows(
   launchId: string,
@@ -56,33 +59,19 @@ function buildLaunchRows(
 
   // Drop launches with no overlap with the period.
   const finalEndForElapsed = active ? period.toMs : (actualEndMs as number);
-  if (finalEndForElapsed < period.fromMs || actualStartMs > period.toMs) {
+  const clippedLaunchStartMs = Math.max(actualStartMs, period.fromMs);
+  const clippedLaunchEndMs = Math.min(finalEndForElapsed, period.toMs);
+  if (clippedLaunchEndMs < period.fromMs || clippedLaunchStartMs > period.toMs) {
     return [];
   }
 
-  const startMs = Math.max(actualStartMs, period.fromMs);
-  const endMs = active
-    ? null
-    : Math.min(actualEndMs as number, period.toMs);
   const truncated =
     actualStartMs < period.fromMs ||
     (actualEndMs !== null && actualEndMs > period.toMs);
 
-  const elapsedMs = TimeCalculator.elapsedMs(
-    actualStartMs,
-    finalEndForElapsed,
-    period,
-  );
-
-  // Launch-level human / inactive time.
+  // Launch-level human/inactive inputs.
   const allSpans: WorkInterval[] = invs.flatMap((i) => [...i.agentSpans]);
   const prompts = invs.flatMap((i) => [...i.promptsMs]);
-  const { humanMs, inactiveMs } = TimeCalculator.humanActivity({
-    launchStartMs: actualStartMs,
-    promptsMs: prompts,
-    agentIntervals: allSpans,
-    period,
-  });
 
   // Effective working-directory root per invocation.
   const effRootCache = new Map<string, string>();
@@ -112,7 +101,7 @@ function buildLaunchRows(
     return value;
   };
 
-  // Aggregate agent-time per (interface, effective-root).
+  // Aggregate spans per (interface, effective-root).
   const groups = new Map<
     string,
     { agent: NormalizedInvocation['interfaceId']; root: string; spans: WorkInterval[] }
@@ -132,33 +121,121 @@ function buildLaunchRows(
   const mainRoot = effRoot(root);
   const mainKey = `${root.interfaceId}\u0000${mainRoot}`;
 
-  // Sub-agent count is launch-level. Readers that split a launch into several
-  // invocations for other reasons (for example one segment per working
-  // directory) mark those segments with `isSubagent: false`; readers that do
-  // not set the marker keep the original "every non-root invocation" meaning.
+  // Sub-agent count is launch-level.
   const subagentCount = invs.filter((i) => i.isSubagent ?? !i.isRoot).length;
 
+  const nameSegments = buildNameSegments(
+    normalizeNameEvents(root.sessionNameEvents ?? []),
+    clippedLaunchStartMs,
+    clippedLaunchEndMs,
+  );
+
   const rows: ReportRow[] = [];
-  for (const [key, group] of groups.entries()) {
-    const isMain = key === mainKey;
-    const agentTimeMs = TimeCalculator.agentTimeMs(group.spans, period);
-    rows.push({
-      launchId,
-      launchShort: '',
-      agent: group.agent,
-      path: group.root === UNKNOWN ? null : group.root,
-      humanMs: isMain ? humanMs : 0,
-      agentTimeMs,
-      elapsedMs,
-      inactiveMs: isMain ? inactiveMs : 0,
-      startMs,
-      endMs,
+  for (const segment of nameSegments) {
+    const segmentPeriod: Period = {
+      fromMs: segment.startMs,
+      toMs: segment.endMs,
+    };
+    const segmentElapsedMs = TimeCalculator.elapsedMs(
       actualStartMs,
-      actualEndMs,
-      truncated,
-      active,
-      subagentCount,
+      finalEndForElapsed,
+      segmentPeriod,
+    );
+    const segmentHuman = TimeCalculator.humanActivity({
+      launchStartMs: actualStartMs,
+      promptsMs: prompts,
+      agentIntervals: allSpans,
+      period: segmentPeriod,
     });
+    const openEndedSegment = active && segment.endMs === clippedLaunchEndMs;
+
+    for (const [key, group] of groups.entries()) {
+      const isMain = key === mainKey;
+      const clippedSpans = group.spans
+        .map((span) =>
+          clipInterval(span, segment.startMs, segment.endMs),
+        )
+        .filter((span): span is WorkInterval => span !== null);
+      const agentTimeMs = TimeCalculator.agentTimeMs(
+        clippedSpans,
+        segmentPeriod,
+      );
+      rows.push({
+        launchId,
+        launchShort: '',
+        agent: group.agent,
+        path: group.root === UNKNOWN ? null : group.root,
+        name: segment.name,
+        humanMs: isMain ? segmentHuman.humanMs : 0,
+        agentTimeMs,
+        elapsedMs: segmentElapsedMs,
+        inactiveMs: isMain ? segmentHuman.inactiveMs : 0,
+        startMs: segment.startMs,
+        endMs: openEndedSegment ? null : segment.endMs,
+        actualStartMs,
+        actualEndMs,
+        truncated,
+        active,
+        subagentCount,
+        segmentStartMs: segment.startMs,
+      });
+    }
   }
+
   return rows;
+}
+
+function normalizeNameEvents(
+  events: readonly SessionNameEvent[],
+): SessionNameEvent[] {
+  const sorted = [...events].sort(
+    (a, b) => a.timestampMs - b.timestampMs || a.name.localeCompare(b.name),
+  );
+  const deduped: SessionNameEvent[] = [];
+  for (const event of sorted) {
+    const prev = deduped[deduped.length - 1];
+    if (prev && prev.name === event.name) {
+      continue;
+    }
+    deduped.push(event);
+  }
+  return deduped;
+}
+
+function buildNameSegments(
+  events: readonly SessionNameEvent[],
+  launchStartMs: number,
+  launchEndMs: number,
+): NameSegment[] {
+  if (launchEndMs <= launchStartMs) {
+    return [];
+  }
+
+  let currentName: string | null = null;
+  for (const event of events) {
+    if (event.timestampMs <= launchStartMs) {
+      currentName = event.name;
+    }
+  }
+
+  const eventsInRange = events.filter(
+    (event) => event.timestampMs > launchStartMs && event.timestampMs < launchEndMs,
+  );
+  const segments: NameSegment[] = [];
+  let currentStart = launchStartMs;
+  for (const event of eventsInRange) {
+    segments.push({
+      startMs: currentStart,
+      endMs: event.timestampMs,
+      name: currentName,
+    });
+    currentName = event.name;
+    currentStart = event.timestampMs;
+  }
+  segments.push({
+    startMs: currentStart,
+    endMs: launchEndMs,
+    name: currentName,
+  });
+  return segments;
 }

@@ -28,9 +28,9 @@ describe('ColumnProjector.resolveColumns', () => {
     expect(
       ColumnProjector.resolveColumns(['-start,+inactive,+actual-start']),
     ).toEqual([
-      'launch',
       'agent',
       'path',
+      'name',
       'human',
       'agent-time',
       'duration',
@@ -41,7 +41,7 @@ describe('ColumnProjector.resolveColumns', () => {
   });
 
   it('treats adding an existing column as a no-op', () => {
-    expect(ColumnProjector.resolveColumns(['+launch'])).toEqual([
+    expect(ColumnProjector.resolveColumns(['+agent'])).toEqual([
       ...DEFAULT_COLUMN_IDS,
     ]);
   });

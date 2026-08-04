@@ -41,7 +41,7 @@ describe('runReport', () => {
   it('renders a default table and exits 0', () => {
     const result = runReport({}, deps([invocation()]));
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain('launch');
+    expect(result.stdout).toContain('agent');
     expect(result.stdout).toContain('codex-cli');
   });
 

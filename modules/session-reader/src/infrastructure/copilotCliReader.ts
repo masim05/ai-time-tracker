@@ -5,6 +5,7 @@ import {
   Diagnostic,
   NormalizedInvocation,
   ReadResult,
+  SessionNameEvent,
   WorkInterval,
 } from '../domain/models';
 
@@ -21,6 +22,12 @@ interface RawEvent {
   timestamp?: string;
   agentId?: string | null;
   data?: Record<string, unknown>;
+}
+
+interface CopilotWorkspaceMeta {
+  readonly cwd?: string;
+  readonly name?: string;
+  readonly userNamed: boolean;
 }
 
 /**
@@ -78,7 +85,8 @@ export class CopilotCliReader implements ISessionReader {
     out: NormalizedInvocation[],
     diagnostics: Diagnostic[],
   ): void {
-    const cwd = this.readCwd(dir);
+    const workspace = this.readWorkspaceMeta(dir);
+    const cwd = workspace.cwd;
     let content: string;
     try {
       content = fs.readFileSync(eventsPath, 'utf8');
@@ -121,7 +129,15 @@ export class CopilotCliReader implements ISessionReader {
     }
 
     const hasLock = this.hasLock(dir);
-    this.buildInvocations(sessionId, cwd, events, hasLock, out);
+    this.buildInvocations(
+      sessionId,
+      cwd,
+      events,
+      hasLock,
+      workspace,
+      diagnostics,
+      out,
+    );
   }
 
   /** Reconstructs root + sub-agent invocations from the event stream. */
@@ -130,6 +146,8 @@ export class CopilotCliReader implements ISessionReader {
     cwd: string | undefined,
     events: RawEvent[],
     hasLock: boolean,
+    workspace: CopilotWorkspaceMeta,
+    diagnostics: Diagnostic[],
     out: NormalizedInvocation[],
   ): void {
     const tsOf = (e: RawEvent): number | null => {
@@ -243,6 +261,8 @@ export class CopilotCliReader implements ISessionReader {
     const endTs = active ? null : maxTs;
     const closeTs = lastAbortTs !== null ? Math.max(lastAbortTs, maxTs) : maxTs;
     closeAllOpen(closeTs);
+    const rootStartMs = minTs;
+    const nameEvents = workspaceNameEvents(workspace, rootStartMs, diagnostics, sessionId);
 
     out.push({
       provider: 'copilot',
@@ -253,7 +273,9 @@ export class CopilotCliReader implements ISessionReader {
       isRoot: true,
       promptsMs,
       agentSpans: mainSpans,
-      startMs: minTs,
+      sessionNameEvents: nameEvents,
+      hasApproximateNameHistory: nameEvents.length > 0,
+      startMs: rootStartMs,
       endMs: endTs,
     });
 
@@ -281,13 +303,13 @@ export class CopilotCliReader implements ISessionReader {
     }
   }
 
-  private readCwd(dir: string): string | undefined {
+  private readWorkspaceMeta(dir: string): CopilotWorkspaceMeta {
     const yamlPath = path.join(dir, 'workspace.yaml');
     try {
       const text = fs.readFileSync(yamlPath, 'utf8');
-      return parseWorkspaceCwd(text);
+      return parseWorkspaceMeta(text);
     } catch {
-      return undefined;
+      return { userNamed: false };
     }
   }
 
@@ -304,19 +326,69 @@ export class CopilotCliReader implements ISessionReader {
 
 /** Extracts the `cwd` value from a Copilot `workspace.yaml` (flat key: value). */
 export function parseWorkspaceCwd(text: string): string | undefined {
+  return parseWorkspaceMeta(text).cwd;
+}
+
+/** Extracts key workspace metadata from Copilot `workspace.yaml`. */
+export function parseWorkspaceMeta(text: string): CopilotWorkspaceMeta {
+  const values = new Map<string, string>();
   for (const raw of text.split('\n')) {
     const line = raw.trim();
-    const match = /^cwd:\s*(.+?)\s*$/.exec(line);
+    const match = /^([A-Za-z0-9_-]+):\s*(.*?)\s*$/.exec(line);
     if (match) {
-      let value = match[1];
-      if (
-        (value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))
-      ) {
-        value = value.slice(1, -1);
+      const key = match[1];
+      let value = match[2];
+      if (value.length > 1) {
+        if (
+          (value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))
+        ) {
+          value = value.slice(1, -1);
+        }
       }
-      return value || undefined;
+      values.set(key, value);
     }
   }
-  return undefined;
+  const cwd = values.get('cwd');
+  const name = values.get('name');
+  const userNamed = (values.get('user_named') ?? '').toLowerCase() === 'true';
+  return {
+    cwd: cwd && cwd.trim().length > 0 ? cwd : undefined,
+    name,
+    userNamed,
+  };
+}
+
+function workspaceNameEvents(
+  workspace: CopilotWorkspaceMeta,
+  launchStartMs: number,
+  diagnostics: Diagnostic[],
+  sessionId: string,
+): SessionNameEvent[] {
+  if (!workspace.userNamed) {
+    return [];
+  }
+  const raw = workspace.name ?? '';
+  if (raw.trim().length === 0) {
+    diagnostics.push({
+      provider: 'copilot',
+      interfaceId: 'copilot-cli',
+      sessionId,
+      eventType: 'workspace-metadata',
+      reason: 'explicit session name metadata was empty or whitespace',
+      severity: 'warning',
+    });
+    return [];
+  }
+  diagnostics.push({
+    provider: 'copilot',
+    interfaceId: 'copilot-cli',
+    sessionId,
+    eventType: 'workspace-metadata',
+    timestampMs: launchStartMs,
+    reason:
+      'session rename history unavailable; applying latest explicit name to full launch',
+    severity: 'warning',
+  });
+  return [{ timestampMs: launchStartMs, name: raw }];
 }
