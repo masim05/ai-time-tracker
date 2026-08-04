@@ -172,7 +172,6 @@ export const COLUMNS: readonly ColumnSpec[] = [
 
 /** Default columns, in order. */
 export const DEFAULT_COLUMN_IDS: readonly ColumnId[] = [
-  'launch',
   'agent',
   'path',
   'name',

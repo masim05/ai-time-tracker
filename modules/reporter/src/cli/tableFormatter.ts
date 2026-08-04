@@ -98,9 +98,20 @@ export class TableFormatter {
           return 'unknown';
         }
         if (column.id === 'path') {
-          return substituteHome(String(value), this.options.homeDir);
+          return toPathSlug(
+            substituteHome(String(value), this.options.homeDir),
+          );
         }
         return String(value);
     }
   }
+}
+
+function toPathSlug(pathValue: string): string {
+  if (pathValue === '~') {
+    return '~';
+  }
+  const trimmed = pathValue.replace(/\/+$/, '');
+  const idx = trimmed.lastIndexOf('/');
+  return idx >= 0 ? trimmed.slice(idx + 1) : trimmed;
 }

@@ -36,7 +36,6 @@ function row(partial: Partial<ReportRow>): ReportRow {
 }
 
 const DEFAULT_IDS: ColumnId[] = [
-  'launch',
   'agent',
   'path',
   'name',
@@ -52,9 +51,9 @@ describe('TableFormatter', () => {
     const report = ColumnProjector.project([row({})], DEFAULT_IDS);
     const out = new TableFormatter({ homeDir: '/home/dev' }).format(report);
     const lines = out.split('\n');
-    expect(lines[0]).toContain('launch');
+    expect(lines[0]).toContain('agent');
     expect(lines[0]).toContain('agent-time');
-    expect(lines[1]).toContain('~/app');
+    expect(lines[1]).toContain('app');
     expect(lines[1]).toContain('-');
     expect(lines[1]).toContain('10h3m');
     expect(lines[1]).toContain('2026-08-01 17:01');
@@ -80,7 +79,7 @@ describe('TableFormatter', () => {
     const out = new TableFormatter().format(report);
     const lines = out.split('\n');
     expect(lines).toHaveLength(1); // header only
-    expect(lines[0]).toContain('launch');
+    expect(lines[0]).toContain('agent');
   });
 
   it('sums only additive columns in the total row; non-additive stay empty', () => {
@@ -130,7 +129,7 @@ describe('CsvFormatter', () => {
   it('emits a header plus rows with the same conventions', () => {
     const report = ColumnProjector.project([row({})], DEFAULT_IDS);
     const lines = new CsvFormatter().format(report).split('\n');
-    expect(lines[0]).toBe('launch,agent,path,name,human,agent-time,start,duration,subagents');
+    expect(lines[0]).toBe('agent,path,name,human,agent-time,start,duration,subagents');
     expect(lines[1]).toContain('603');
     expect(lines[1]).toContain('2026-08-01T17:01:46+00:00');
   });
@@ -138,8 +137,17 @@ describe('CsvFormatter', () => {
   it('emits the header only for an empty result', () => {
     const report = ColumnProjector.project([], DEFAULT_IDS);
     expect(new CsvFormatter().format(report)).toBe(
-      'launch,agent,path,name,human,agent-time,start,duration,subagents',
+      'agent,path,name,human,agent-time,start,duration,subagents',
     );
+  });
+
+  it('shows ~ when path equals the home directory', () => {
+    const report = ColumnProjector.project(
+      [row({ path: '/home/dev' })],
+      ['path'],
+    );
+    const out = new TableFormatter({ homeDir: '/home/dev' }).format(report);
+    expect(out.split('\n')[1]).toContain('~');
   });
 
   it('emits an empty field for an active session end', () => {

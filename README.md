@@ -65,8 +65,8 @@ Accepted date/time formats: `YYYYMMDD`, `YYYYMMDD-HHmm`, `YYYYMMDD-HHmmss`,
 time defaults to `00:00:00`; a missing timezone uses local time; a
 DST-ambiguous local time without an offset is rejected.
 
-Default columns: `launch, agent, path, human, agent-time, start,
-name, duration, subagents`. Run `npm run cli -- report --help` for the full 17-column catalog.
+Default columns: `agent, path, name, human, agent-time, start,
+duration, subagents`. Run `npm run cli -- report --help` for the full 17-column catalog.
 
 Exit codes: `0` success, `1` partial failure (some sources unreadable), `2`
 invalid usage.
