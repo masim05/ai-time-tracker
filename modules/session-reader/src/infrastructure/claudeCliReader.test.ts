@@ -73,29 +73,42 @@ describe('ClaudeCliReader', () => {
     expect(root.cwd).toBe('/work/alpha');
     expect(root.startMs).toBe(at('2026-07-15T09:00:00Z'));
     expect(root.endMs).toBe(at('2026-07-15T09:17:00Z'));
-    expect(root.sessionNameEvents).toEqual([
-      { timestampMs: at('2026-07-15T09:10:00Z'), name: 'alpha' },
-      { timestampMs: at('2026-07-15T09:12:00Z'), name: 'beta' },
-    ]);
   });
 
-  it('extracts one session-name event per /rename record, in transcript order', () => {
+  it('extracts one session-name event per /rename record, in timestamp order', () => {
     // Regression for the bug: Claude Code persists a rename as a
     // `system` / `local_command` record carrying the `/rename` invocation, and
-    // nothing else in the transcript names the session.
+    // no `sessionName` metadata exists anywhere in a transcript.
     const [root] = launchOf(read(), S1);
     expect(root.sessionNameEvents).toEqual([
       { timestampMs: at('2026-07-15T09:10:00Z'), name: 'alpha' },
       { timestampMs: at('2026-07-15T09:12:00Z'), name: 'beta' },
+      // Newlines and tabs in the argument collapse to single spaces.
+      { timestampMs: at('2026-07-15T09:12:30Z'), name: 'gamma delta' },
     ]);
+    // Recorded rename history wins over the launch's `custom-title` record.
+    expect(root.hasApproximateNameHistory).toBe(false);
   });
 
-  it('ignores local command records that are not a rename', () => {
-    // The transcript also holds a `/compact` invocation and the
-    // `<local-command-stdout>` record a rename writes after itself.
-    const [root] = launchOf(read(), S1);
+  it('ignores records that are not a rename the launch performed', () => {
+    const result = read();
+    const [root] = launchOf(result, S1);
     const names = (root.sessionNameEvents ?? []).map((event) => event.name);
-    expect(names).toEqual(['alpha', 'beta']);
+    // Each of these is a record in the S1 fixture that must produce no name:
+    // the `<local-command-stdout>` a rename writes after itself, a sidechain
+    // and a meta rename, a `/compact` whose own arguments quote a rename block,
+    // a plain `/compact`, and a record whose `content` is not a string.
+    expect(names).not.toContain('sidechain-name');
+    expect(names).not.toContain('meta-name');
+    expect(names).not.toContain('array-content');
+    expect(names.some((name) => name.includes('command-name'))).toBe(false);
+    expect(names.some((name) => name.includes('focus on tests'))).toBe(false);
+    expect(names).toEqual(['alpha', 'beta', 'gamma delta']);
+    // None of them is reported as a malformed rename either.
+    const warnings = result.diagnostics.filter(
+      (d) => d.sessionId === S1 && d.eventType === 'session-rename',
+    );
+    expect(warnings).toHaveLength(3);
   });
 
   it('warns without content when a rename records no name', () => {
@@ -103,10 +116,12 @@ describe('ClaudeCliReader', () => {
     const warnings = result.diagnostics.filter(
       (d) => d.eventType === 'session-rename',
     );
-    // An empty argument at 09:13 and a whitespace-only one at 09:15.
-    expect(warnings).toHaveLength(2);
+    // An empty argument at 09:13, no `<command-args>` tag at all at 09:14:30,
+    // and a whitespace-only argument at 09:15.
+    expect(warnings).toHaveLength(3);
     expect(warnings.map((d) => d.timestampMs)).toEqual([
       at('2026-07-15T09:13:00Z'),
+      at('2026-07-15T09:14:30Z'),
       at('2026-07-15T09:15:00Z'),
     ]);
     for (const warning of warnings) {
@@ -118,21 +133,85 @@ describe('ClaudeCliReader', () => {
     }
     // The nameless renames produce no event; the named ones still do.
     const [root] = launchOf(result, S1);
-    expect(root.sessionNameEvents).toHaveLength(2);
+    expect(root.sessionNameEvents).toHaveLength(3);
   });
 
-  it('keeps a replayed rename with the launch that recorded it first', () => {
-    // S2 resumes S1, so S1's two renames are replayed into its transcript;
-    // only the rename S2 recorded itself belongs to it.
-    const [resumed] = launchOf(read(), S2);
+  it('names a resumed launch from custom-title when its rename was replayed', () => {
+    // S2 resumes S1, so S1's renames are replayed into its transcript and stay
+    // with S1. S2 still owns the name through its untimestamped `custom-title`
+    // records, which hold the latest name only: the last one wins and is
+    // applied from S2's own start.
+    const result = read();
+    const [resumed] = launchOf(result, S2);
     expect(resumed.sessionNameEvents).toEqual([
-      { timestampMs: at('2026-07-15T09:41:00Z'), name: 'gamma' },
+      { timestampMs: at('2026-07-15T09:40:00Z'), name: 's2-latest-title' },
     ]);
-    const [original] = launchOf(read(), S1);
-    expect(original.sessionNameEvents).toEqual([
-      { timestampMs: at('2026-07-15T09:10:00Z'), name: 'alpha' },
-      { timestampMs: at('2026-07-15T09:12:00Z'), name: 'beta' },
+    expect(resumed.hasApproximateNameHistory).toBe(true);
+
+    const fallback = result.diagnostics.filter(
+      (d) => d.sessionId === S2 && d.eventType === 'custom-title-metadata',
+    );
+    expect(fallback).toHaveLength(1);
+    expect(fallback[0].severity).toBe('warning');
+    expect(fallback[0].timestampMs).toBe(at('2026-07-15T09:40:00Z'));
+    expect(fallback[0].reason).toBe(
+      'session rename history unavailable; applying latest explicit name to full launch',
+    );
+
+    // The original keeps its own rename history and needs no fallback.
+    const [original] = launchOf(result, S1);
+    expect(original.sessionNameEvents?.map((e) => e.name)).toEqual([
+      'alpha',
+      'beta',
+      'gamma delta',
     ]);
+    expect(
+      result.diagnostics.some(
+        (d) => d.sessionId === S1 && d.eventType === 'custom-title-metadata',
+      ),
+    ).toBe(false);
+  });
+
+  it('applies a custom-title fallback to the launch root only', () => {
+    const result = read();
+    const segments = segmentsOf(result, S3);
+    expect(segments).toHaveLength(3);
+    expect(segments[0].sessionNameEvents).toEqual([
+      { timestampMs: at('2026-07-16T09:00:00Z'), name: 's3-title' },
+    ]);
+    expect(segments[0].hasApproximateNameHistory).toBe(true);
+    for (const segment of segments.slice(1)) {
+      expect(segment.sessionNameEvents).toBeUndefined();
+      expect(segment.hasApproximateNameHistory).toBeUndefined();
+    }
+  });
+
+  it('warns and reports no name for an empty custom-title', () => {
+    const result = read();
+    const warnings = result.diagnostics.filter(
+      (d) => d.sessionId === S6 && d.eventType === 'custom-title-metadata',
+    );
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].severity).toBe('warning');
+    expect(warnings[0].timestampMs).toBeUndefined();
+    expect(warnings[0].reason).toBe(
+      'explicit session name metadata was empty or whitespace',
+    );
+    const [root] = launchOf(result, S6);
+    expect(root.sessionNameEvents).toEqual([]);
+    expect(root.hasApproximateNameHistory).toBe(false);
+  });
+
+  it('skips a non-string custom-title without a diagnostic', () => {
+    const result = read();
+    const [root] = launchOf(result, S5);
+    expect(root.sessionNameEvents).toEqual([]);
+    expect(root.hasApproximateNameHistory).toBe(false);
+    expect(
+      result.diagnostics.some(
+        (d) => d.sessionId === S5 && d.eventType === 'custom-title-metadata',
+      ),
+    ).toBe(false);
   });
 
   it('counts only developer prompts, not injected or tool-result records', () => {

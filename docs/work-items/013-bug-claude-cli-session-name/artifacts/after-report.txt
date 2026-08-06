@@ -1,20 +1,20 @@
 
 agent        path                  name        human  agent-time  start             duration  subagents
 claude-cli   ai-time-tracker       -              2m      10h59m  2026-08-03 00:00     11h2m  4
-claude-cli   e-perf-report         -              0m          0m  2026-08-03 00:00   3d3h27m  0
-claude-cli   email-proxy           -              0m          0m  2026-08-03 00:00   3d3h27m  0
+claude-cli   e-perf-report         -              0m          0m  2026-08-03 00:00   3d3h48m  0
+claude-cli   email-proxy           -              0m          0m  2026-08-03 00:00   3d3h48m  0
 claude-cli   slack-bot-changelens  -              0m          0m  2026-08-03 12:57        0m  0
-claude-cli   slack-bot-changelens  JHAIDO-611     0m          0m  2026-08-03 12:57  2d14h30m  0
-claude-cli   slack-bot-changelens  -              0m       1h13m  2026-08-03 12:57    16h22m  0
+claude-cli   slack-bot-changelens  JHAIDO-611     0m          0m  2026-08-03 12:57  2d14h50m  0
+claude-cli   slack-bot-changelens  JHAIDO-611     0m       1h13m  2026-08-03 12:57    16h22m  0
 codex-app    email-proxy           -             12m          2m  2026-08-03 13:17       14m  0
 codex-cli    email-proxy           -            1h4m         59m  2026-08-03 13:32    17h50m  8
-claude-cli   slack-bot-changelens  -              4m          1m  2026-08-04 06:18   1d21h9m  0
+claude-cli   slack-bot-changelens  -              4m          1m  2026-08-04 06:18  1d21h29m  0
 copilot-cli  email-proxy           JHAIC-751      2m         31m  2026-08-04 07:33     3h44m  3
 claude-cli   jobhire-smtp          -              0m          0m  2026-08-05 10:56        0m  0
-claude-cli   jobhire-smtp          JHAIC-755     44m       14h9m  2026-08-05 10:56    16h31m  0
+claude-cli   jobhire-smtp          JHAIC-755     44m       14h9m  2026-08-05 10:56    16h51m  0
 codex-app    jobhire-smtp          -              0m          4m  2026-08-05 11:24        4m  0
 codex-app    jobhire-smtp          -             40m         46m  2026-08-05 11:29    13h10m  4
-claude-cli   ai-time-tracker       issues-11     11m        1h0m  2026-08-06 02:16     1h11m  1
+claude-cli   ai-time-tracker       issues-11     11m       1h52m  2026-08-06 02:16     1h31m  3
 -----------  --------------------  ----------  -----  ----------  ----------------  --------  ---------
-total                                          2h59m     1d5h45m
-2 warning(s); re-run with --verbose for details.
+total                                          2h59m     1d6h37m
+3 warning(s); re-run with --verbose for details.

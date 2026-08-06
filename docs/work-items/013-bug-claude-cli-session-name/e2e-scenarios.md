@@ -28,6 +28,23 @@ Expected: the launch appears on consecutive chronological rows, the earlier row
 carrying the previous name (or unset) and the later row the new name, with
 launch identity preserved.
 
+Coverage note: only the `unset → name` half of this scenario is observable in
+the local corpus, because every `/rename` there is a launch's first rename. The
+`name → name` transition is covered at unit level instead — fixture `s1`
+(`alpha` at 09:10 → `beta` at 09:12 → `gamma delta` at 09:12:30) and
+`groupingService.test.ts > splits rows at temporal name boundaries and keeps
+launch identity`.
+
+## E3b — Resumed launch keeps the name
+
+Resume a named Claude CLI session (`claude --resume`) and report over the
+period covering both launches.
+
+Expected: both the original launch and the resumed one report the name. The
+original reports it from its own rename history; the resumed one reports it
+launch-wide from its untimestamped `custom-title` record, with a latest-only
+warning visible under `-v`.
+
 ## E4 — No regression for other agents
 
 ```bash

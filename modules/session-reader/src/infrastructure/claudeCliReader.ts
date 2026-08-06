@@ -38,6 +38,8 @@ export interface ClaudeTranscriptRecord {
   sourceToolUseID?: string;
   /** Slash-command payload of a `system` / `local_command` record. */
   content?: unknown;
+  /** Latest explicit session name, repeated on every `custom-title` record. */
+  customTitle?: unknown;
 }
 
 /** A transcript file that survived parsing. */
@@ -292,9 +294,11 @@ export class ClaudeCliReader implements ISessionReader {
       // Every record was already attributed to the launch this one resumed.
       return;
     }
-    const sessionNameEvents = extractClaudeNameEvents(
+    const names = resolveClaudeNames(
       timed,
+      ownRecords,
       session.sessionId,
+      timed[0].ts,
       diagnostics,
     );
 
@@ -370,7 +374,8 @@ export class ClaudeCliReader implements ISessionReader {
         isSubagent: false,
         promptsMs: segment.promptsMs,
         agentSpans: segment.spans,
-        sessionNameEvents: isRoot ? sessionNameEvents : undefined,
+        sessionNameEvents: isRoot ? names.events : undefined,
+        hasApproximateNameHistory: isRoot ? names.approximate : undefined,
         startMs: segment.startMs,
         endMs: active && isLast ? null : segment.endMs,
       });
@@ -495,27 +500,64 @@ export class ClaudeCliReader implements ISessionReader {
   }
 }
 
+/** Explicit names resolved for one launch. */
+interface ResolvedClaudeNames {
+  readonly events: SessionNameEvent[];
+  /** True when the names come from latest-only metadata, not rename history. */
+  readonly approximate: boolean;
+}
+
 /**
- * Matches the `/rename` slash command inside the `content` of a
- * `system` / `local_command` record. Other local commands and the
- * `<local-command-stdout>` record that follows one do not match.
+ * Opens the `/rename` slash command of a `system` / `local_command` record.
+ * Anchored at the start of `content`, which is where Claude Code writes the
+ * invoked command: another command that merely quotes a rename block inside its
+ * own arguments is not a rename. The `<local-command-stdout>` record that
+ * follows a rename has no command block at all and does not match either.
  */
-const RENAME_COMMAND_PATTERN = /<command-name>\s*\/rename\s*<\/command-name>/;
-
-/** Captures the argument of a slash command recorded in `content`. */
-const COMMAND_ARGS_PATTERN = /<command-args>([\s\S]*?)<\/command-args>/;
+const RENAME_COMMAND_PATTERN = /^\s*<command-name>\s*\/rename\s*<\/command-name>/;
 
 /**
- * Collects the explicit session names a launch recorded, in transcript order.
+ * Captures the argument of that same rename block: the first `<command-args>`
+ * reached without passing another `<command-name>`, so a nested command's
+ * arguments can never be mistaken for the new name.
+ */
+const RENAME_ARGS_PATTERN =
+  /^\s*<command-name>\s*\/rename\s*<\/command-name>(?:(?!<command-name>)[\s\S])*?<command-args>([\s\S]*?)<\/command-args>/;
+
+/**
+ * Resolves the explicit names of one launch.
  *
- * Claude Code persists a rename as a timestamped `system` / `local_command`
- * transcript record holding the `/rename` invocation, which is the only durable
- * source of name history; the `sessions/<pid>.json` registry keeps only the
- * latest name of a recent launch and carries no timestamp. Records replayed
- * into a resumed transcript are filtered out before this point, so a rename
- * stays attributed to the launch that recorded it first.
+ * Claude Code persists a rename twice. The durable, timestamped form is a
+ * `system` / `local_command` record holding the `/rename` invocation, which
+ * carries full rename history and is preferred whenever the launch recorded one
+ * of its own. Untimestamped `custom-title` records repeat the launch's latest
+ * name and are used only as a fallback: a resumed launch inherits the name in
+ * Claude's UI but its `/rename` record is a replay claimed by the launch that
+ * recorded it first, so `custom-title` is the only name it owns. The two are
+ * never mixed. (The `sessions/<pid>.json` registry also holds a latest name,
+ * but only for a few recent launches, so it is not read here.)
  */
-function extractClaudeNameEvents(
+function resolveClaudeNames(
+  timed: readonly { record: ClaudeTranscriptRecord; ts: number }[],
+  ownRecords: readonly ClaudeTranscriptRecord[],
+  sessionId: string,
+  launchStartMs: number,
+  diagnostics: Diagnostic[],
+): ResolvedClaudeNames {
+  const events = renameEvents(timed, sessionId, diagnostics);
+  if (events.length > 0) {
+    return { events, approximate: false };
+  }
+  return latestCustomTitle(ownRecords, sessionId, launchStartMs, diagnostics);
+}
+
+/**
+ * One event per `/rename` record the launch recorded, in timestamp order (the
+ * caller has already sorted the records). Records replayed into a resumed
+ * transcript are filtered out before this point, so a rename stays attributed
+ * to the launch that recorded it first.
+ */
+function renameEvents(
   timed: readonly { record: ClaudeTranscriptRecord; ts: number }[],
   sessionId: string,
   diagnostics: Diagnostic[],
@@ -526,7 +568,7 @@ function extractClaudeNameEvents(
     if (argument === undefined) {
       continue;
     }
-    const name = argument.trim();
+    const name = normalizeName(argument);
     if (name.length === 0) {
       diagnostics.push({
         provider: 'claude',
@@ -545,19 +587,81 @@ function extractClaudeNameEvents(
 }
 
 /**
+ * The launch's last `custom-title` value, applied launch-wide with the same
+ * latest-only warning the Copilot and Codex readers emit. `custom-title`
+ * records carry no timestamp, so no rename boundary can be recovered from them.
+ */
+function latestCustomTitle(
+  ownRecords: readonly ClaudeTranscriptRecord[],
+  sessionId: string,
+  launchStartMs: number,
+  diagnostics: Diagnostic[],
+): ResolvedClaudeNames {
+  let latest: string | undefined;
+  for (const record of ownRecords) {
+    // A non-string `customTitle` is not a name this reader can use; the record
+    // is skipped in favour of any other title the launch recorded.
+    if (record.type === 'custom-title' && typeof record.customTitle === 'string') {
+      latest = record.customTitle;
+    }
+  }
+  if (latest === undefined) {
+    return { events: [], approximate: false };
+  }
+
+  const name = normalizeName(latest);
+  if (name.length === 0) {
+    diagnostics.push({
+      provider: 'claude',
+      interfaceId: 'claude-cli',
+      sessionId,
+      eventType: 'custom-title-metadata',
+      reason: 'explicit session name metadata was empty or whitespace',
+      severity: 'warning',
+    });
+    return { events: [], approximate: false };
+  }
+
+  diagnostics.push({
+    provider: 'claude',
+    interfaceId: 'claude-cli',
+    sessionId,
+    eventType: 'custom-title-metadata',
+    timestampMs: launchStartMs,
+    reason:
+      'session rename history unavailable; applying latest explicit name to full launch',
+    severity: 'warning',
+  });
+  return { events: [{ timestampMs: launchStartMs, name }], approximate: true };
+}
+
+/**
  * The raw argument of a `/rename` record, or `undefined` when the record is not
- * one. A `/rename` without an argument yields an empty string, which the caller
- * reports as a nameless rename.
+ * one. A `/rename` with no argument, or with no `<command-args>` tag at all,
+ * yields an empty string, which the caller reports as a nameless rename.
+ *
+ * A record whose `content` is not a string is not identifiable as a rename —
+ * every `local_command` record Claude Code writes has string `content` — so it
+ * is skipped without a diagnostic rather than reported as a malformed rename.
  */
 function renameArgument(record: ClaudeTranscriptRecord): string | undefined {
   if (record.type !== 'system' || record.subtype !== 'local_command') {
+    return undefined;
+  }
+  // Sub-agent and meta records never rename the launch, matching isHumanPrompt.
+  if (record.isSidechain === true || record.isMeta === true) {
     return undefined;
   }
   const content = record.content;
   if (typeof content !== 'string' || !RENAME_COMMAND_PATTERN.test(content)) {
     return undefined;
   }
-  return COMMAND_ARGS_PATTERN.exec(content)?.[1] ?? '';
+  return RENAME_ARGS_PATTERN.exec(content)?.[1] ?? '';
+}
+
+/** Collapses newlines, tabs, and runs of spaces so a name stays one table cell. */
+function normalizeName(value: string): string {
+  return value.replace(/\s+/g, ' ').trim();
 }
 
 /**
