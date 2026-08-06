@@ -1,3 +1,4 @@
 {"type": "user", "uuid": "x1", "sessionId": "s5-5555-5555-5555-555555555555", "timestamp": "2026-07-18T09:00:00Z", "cwd": "/work/omega", "entrypoint": "cli", "isSidechain": false, "promptSource": "typed", "message": {"role": "user"}}
 { this is not json
 {"type": "assistant", "uuid": "x2", "sessionId": "s5-5555-5555-5555-555555555555", "timestamp": "2026-07-18T09:03:00Z", "cwd": "/work/omega", "entrypoint": "cli", "isSidechain": false, "message": {"role": "assistant"}}
+{"type": "custom-title", "customTitle": {"value": "not-a-string"}, "sessionId": "s5-5555-5555-5555-555555555555"}

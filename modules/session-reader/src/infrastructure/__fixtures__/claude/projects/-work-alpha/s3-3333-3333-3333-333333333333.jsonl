@@ -1,3 +1,4 @@
+{"type": "custom-title", "customTitle": "s3-title", "sessionId": "s3-3333-3333-3333-333333333333"}
 {"type": "user", "uuid": "v1", "sessionId": "s3-3333-3333-3333-333333333333", "timestamp": "2026-07-16T09:00:00Z", "cwd": "/work/alpha", "entrypoint": "cli", "isSidechain": false, "promptSource": "typed", "message": {"role": "user"}}
 {"type": "assistant", "uuid": "b1", "sessionId": "s3-3333-3333-3333-333333333333", "timestamp": "2026-07-16T09:02:00Z", "cwd": "/work/alpha", "entrypoint": "cli", "isSidechain": false, "message": {"role": "assistant"}}
 {"type": "file-history-delta", "uuid": "m1", "sessionId": "s3-3333-3333-3333-333333333333", "timestamp": "2026-07-16T09:04:00Z", "entrypoint": "cli"}
