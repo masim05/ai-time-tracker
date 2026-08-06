@@ -1,0 +1,49 @@
+# Developer verification — 2026-08-06
+
+All live checks were offline and read-only. No persisted label or conversation
+content was captured.
+
+## Provider discovery
+
+- `state_5.sqlite` exposes both `threads.name` and `threads.title`.
+- 22 thread rows were present on the development server.
+- 0 rows had a nonblank explicit name.
+- 15 rows had a nonblank provider-generated title.
+- 15 rows required the generated-title fallback.
+
+## Automated regression
+
+```text
+npm test -- modules/session-reader/src/infrastructure/codexReader.test.ts
+14 tests passed
+```
+
+The focused cases cover CLI and App titles, explicit-name precedence,
+whitespace normalization and fallback, ordinary-message non-inference, root
+only attribution, latest-value warnings, unnamed sessions, and compatibility
+with a state database that lacks the optional `title` column.
+
+## Live report verification
+
+- `codex-cli`: 3 rows, all 3 had provider-persisted labels.
+- `codex-app`: 5 rows, all 5 had provider-persisted labels.
+- Table, JSON, and CSV commands completed successfully with non-empty output.
+- Verbose JSON completed successfully; diagnostics contained none of the
+  persisted names or titles from the state database.
+
+The counts reflect the available development-server data at verification time
+and intentionally omit all real label values.
+
+## Full local validation
+
+```text
+npm run typecheck: passed
+npm test: 15 files passed, 173 tests passed
+npm run build: passed
+scripts/check-ai-flow-config.sh: passed
+tests/integration/check-ai-flow-config.sh: passed
+scripts/check-architecture.sh: passed
+scripts/check-specs.sh: passed
+scripts/check-dod.sh: passed
+scripts/check-pr.sh: passed
+```

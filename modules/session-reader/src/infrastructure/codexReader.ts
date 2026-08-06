@@ -29,7 +29,8 @@ interface ThreadRow {
   updated_at_ms: number | null;
   cwd: string | null;
   thread_source: string | null;
-  name?: string | null;
+  name?: unknown;
+  title?: unknown;
 }
 
 const DEFAULT_IDLE_GAP_MS = 2 * 60 * 1000;
@@ -70,9 +71,19 @@ export class CodexReader implements ISessionReader {
     try {
       const state = new Database(statePath, { readonly: true, fileMustExist: true });
       try {
+        const threadColumns = new Set(
+          (
+            state.prepare('PRAGMA table_info(threads)').all() as {
+              name: string;
+            }[]
+          ).map((column) => column.name),
+        );
+        const titleSelection = threadColumns.has('title')
+          ? 'title'
+          : 'NULL AS title';
         threads = state
           .prepare(
-            'SELECT id, created_at_ms, updated_at_ms, cwd, thread_source, name FROM threads',
+            `SELECT id, created_at_ms, updated_at_ms, cwd, thread_source, name, ${titleSelection} FROM threads`,
           )
           .all() as ThreadRow[];
         edges = state
@@ -281,18 +292,54 @@ function resolveCodexNameEvents(
   if (thread.id !== rootId) {
     return [];
   }
-  if (thread.name === undefined || thread.name === null) {
-    return [];
-  }
-  if (thread.name.trim().length === 0) {
+  const explicitName = normalizePersistedLabel(thread.name);
+  const generatedTitle = normalizePersistedLabel(thread.title);
+  if (thread.name !== undefined && thread.name !== null && typeof thread.name !== 'string') {
     diagnostics.push({
       provider: 'codex',
       interfaceId,
       sessionId: thread.id,
       eventType: 'thread-metadata',
-      reason: 'explicit session name metadata was empty or whitespace',
+      reason: 'explicit session name metadata had an unsupported type',
       severity: 'warning',
     });
+  }
+  if (thread.name !== undefined && thread.name !== null && explicitName === undefined) {
+    if (typeof thread.name === 'string') {
+      diagnostics.push({
+        provider: 'codex',
+        interfaceId,
+        sessionId: thread.id,
+        eventType: 'thread-metadata',
+        reason: 'explicit session name metadata was empty or whitespace',
+        severity: 'warning',
+      });
+    }
+  }
+  if (thread.title !== undefined && thread.title !== null && typeof thread.title !== 'string') {
+    diagnostics.push({
+      provider: 'codex',
+      interfaceId,
+      sessionId: thread.id,
+      eventType: 'thread-metadata',
+      reason: 'generated session title metadata had an unsupported type',
+      severity: 'warning',
+    });
+  }
+  if (thread.title !== undefined && thread.title !== null && generatedTitle === undefined) {
+    if (typeof thread.title === 'string') {
+      diagnostics.push({
+        provider: 'codex',
+        interfaceId,
+        sessionId: thread.id,
+        eventType: 'thread-metadata',
+        reason: 'generated session title metadata was empty or whitespace',
+        severity: 'warning',
+      });
+    }
+  }
+  const selectedName = explicitName ?? generatedTitle;
+  if (selectedName === undefined) {
     return [];
   }
   diagnostics.push({
@@ -302,10 +349,18 @@ function resolveCodexNameEvents(
     eventType: 'thread-metadata',
     timestampMs: startMs,
     reason:
-      'session rename history unavailable; applying latest explicit name to full launch',
+      'session naming history unavailable; applying latest persisted label to full launch',
     severity: 'warning',
   });
-  return [{ timestampMs: startMs, name: thread.name }];
+  return [{ timestampMs: startMs, name: selectedName }];
+}
+
+function normalizePersistedLabel(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
 }
 
 /** Follows spawn edges to the top-most ancestor thread id. */

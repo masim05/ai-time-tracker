@@ -14,21 +14,37 @@ beforeAll(() => {
   state.exec(`
     CREATE TABLE threads (
       id TEXT, created_at_ms INTEGER, updated_at_ms INTEGER, cwd TEXT,
-      thread_source TEXT, name TEXT
+      thread_source TEXT, name TEXT, title TEXT
     );
     CREATE TABLE thread_spawn_edges (
       parent_thread_id TEXT, child_thread_id TEXT, status TEXT
     );
   `);
   const insThread = state.prepare(
-    'INSERT INTO threads (id, created_at_ms, updated_at_ms, cwd, thread_source, name) VALUES (?,?,?,?,?,?)',
+    'INSERT INTO threads (id, created_at_ms, updated_at_ms, cwd, thread_source, name, title) VALUES (?,?,?,?,?,?,?)',
   );
   // Root CLI thread.
-  insThread.run('T-root', 1000, 500000, '/home/dev/app', 'user', 'codex-work');
+  insThread.run('T-root', 1000, 500000, '/home/dev/app', 'user', '  codex-work  ', 'ignored title');
   // Sub-agent thread under the root, in the same dir.
-  insThread.run('T-sub', 5000, 400000, '/home/dev/app', 'subagent', null);
+  insThread.run('T-sub', 5000, 400000, '/home/dev/app', 'subagent', null, 'ignored sub title');
   // Independent app thread.
-  insThread.run('T-app', 2000, 600000, '/home/dev/app2', 'user', null);
+  insThread.run('T-app', 2000, 600000, '/home/dev/app2', 'user', null, '  generated app title  ');
+  // App thread with both explicit and generated labels.
+  insThread.run('T-app-explicit', 2500, 650000, '/home/dev/app2', 'user', ' app name ', 'ignored app title');
+  // CLI thread with an empty explicit name and a generated-title fallback.
+  insThread.run('T-title', 3000, 700000, '/home/dev/app3', 'user', '   ', 'generated CLI title');
+  // Unnamed root whose history text resembles a rename request.
+  insThread.run('T-unnamed', 4000, 800000, '/home/dev/app4', 'user', null, null);
+  // Malformed provider metadata must not abort other sessions.
+  insThread.run(
+    'T-malformed',
+    4500,
+    850000,
+    '/home/dev/app5',
+    'user',
+    null,
+    Buffer.from([42]),
+  );
   state
     .prepare(
       'INSERT INTO thread_spawn_edges (parent_thread_id, child_thread_id, status) VALUES (?,?,?)',
@@ -54,11 +70,19 @@ beforeAll(() => {
   // App thread activity in process P2, which also emits app-server logs.
   insLog.run(2, 0, 'INFO', 'codex_core::turn', 'T-app', 'P2');
   insLog.run(3, 0, 'INFO', 'codex_app_server::outgoing_message', 'T-app', 'P2');
+  insLog.run(2, 500000000, 'INFO', 'codex_core::turn', 'T-app-explicit', 'P5');
+  insLog.run(3, 500000000, 'INFO', 'codex_app_server::outgoing_message', 'T-app-explicit', 'P5');
+  insLog.run(3, 0, 'INFO', 'codex_core::turn', 'T-title', 'P3');
+  insLog.run(4, 0, 'INFO', 'codex_core::turn', 'T-unnamed', 'P4');
+  insLog.run(4, 500000000, 'INFO', 'codex_core::turn', 'T-malformed', 'P6');
   logs.close();
 
   fs.writeFileSync(
     path.join(baseDir, 'history.jsonl'),
-    JSON.stringify({ session_id: 'T-root', ts: 1, text: '' }) + '\n',
+    [
+      JSON.stringify({ session_id: 'T-root', ts: 1, text: '' }),
+      JSON.stringify({ session_id: 'T-unnamed', ts: 4, text: "call this session 'abc'" }),
+    ].join('\n') + '\n',
   );
 });
 
@@ -113,6 +137,74 @@ describe('CodexReader', () => {
       (i) => i.invocationId === 'T-app',
     ) as NormalizedInvocation;
     expect(app.interfaceId).toBe('codex-app');
+    expect(app.sessionNameEvents).toEqual([
+      { timestampMs: 2000, name: 'generated app title' },
+    ]);
+    expect(app.hasApproximateNameHistory).toBe(true);
+  });
+
+  it('extracts and trims an explicit name for a codex-app root', () => {
+    const { invocations } = read();
+    const app = invocations.find(
+      (i) => i.invocationId === 'T-app-explicit',
+    ) as NormalizedInvocation;
+    expect(app.interfaceId).toBe('codex-app');
+    expect(app.sessionNameEvents).toEqual([
+      { timestampMs: 2500, name: 'app name' },
+    ]);
+  });
+
+  it('uses a generated CLI title when the explicit name is blank', () => {
+    const { invocations, diagnostics } = read();
+    const titled = invocations.find(
+      (i) => i.invocationId === 'T-title',
+    ) as NormalizedInvocation;
+    expect(titled.interfaceId).toBe('codex-cli');
+    expect(titled.sessionNameEvents).toEqual([
+      { timestampMs: 3000, name: 'generated CLI title' },
+    ]);
+    expect(titled.hasApproximateNameHistory).toBe(true);
+    expect(
+      diagnostics.some(
+        (diagnostic) =>
+          diagnostic.sessionId === 'T-title' &&
+          diagnostic.reason === 'explicit session name metadata was empty or whitespace',
+      ),
+    ).toBe(true);
+  });
+
+  it('prefers and trims an explicit name when a generated title also exists', () => {
+    const { invocations } = read();
+    const root = invocations.find(
+      (i) => i.invocationId === 'T-root',
+    ) as NormalizedInvocation;
+    expect(root.sessionNameEvents).toEqual([
+      { timestampMs: 1000, name: 'codex-work' },
+    ]);
+  });
+
+  it('does not infer a name from ordinary history messages', () => {
+    const { invocations } = read();
+    const unnamed = invocations.find(
+      (i) => i.invocationId === 'T-unnamed',
+    ) as NormalizedInvocation;
+    expect(unnamed.sessionNameEvents).toEqual([]);
+    expect(unnamed.hasApproximateNameHistory).toBe(false);
+  });
+
+  it('diagnoses malformed label metadata without exposing its value or aborting', () => {
+    const { invocations, diagnostics } = read();
+    const malformed = invocations.find(
+      (i) => i.invocationId === 'T-malformed',
+    ) as NormalizedInvocation;
+    expect(malformed.sessionNameEvents).toEqual([]);
+    const diagnostic = diagnostics.find(
+      (item) =>
+        item.sessionId === 'T-malformed' &&
+        item.reason === 'generated session title metadata had an unsupported type',
+    );
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.reason).not.toContain('42');
   });
 
   it('derives agent spans from clustered log timestamps', () => {
@@ -142,8 +234,32 @@ describe('CodexReader', () => {
     const { diagnostics } = read();
     expect(
       diagnostics.some((d) =>
-        d.reason.includes('session rename history unavailable'),
+        d.reason.includes('session naming history unavailable'),
       ),
     ).toBe(true);
+  });
+
+  it('supports an older threads schema without a title column', () => {
+    const oldSchemaDir = fs.mkdtempSync(path.join(__dirname, 'codex-old-schema-'));
+    const state = new Database(path.join(oldSchemaDir, 'state_5.sqlite'));
+    state.exec(`
+      CREATE TABLE threads (
+        id TEXT, created_at_ms INTEGER, updated_at_ms INTEGER, cwd TEXT,
+        thread_source TEXT, name TEXT
+      );
+      CREATE TABLE thread_spawn_edges (
+        parent_thread_id TEXT, child_thread_id TEXT, status TEXT
+      );
+      INSERT INTO threads VALUES ('old-root', 1000, 2000, '/tmp/old', 'user', 'old name');
+    `);
+    state.close();
+
+    const result = new CodexReader({ baseDir: oldSchemaDir }).read();
+    expect(result.invocations).toHaveLength(1);
+    expect(result.invocations[0]?.sessionNameEvents).toEqual([
+      { timestampMs: 1000, name: 'old name' },
+    ]);
+    expect(result.diagnostics.some((diagnostic) => diagnostic.severity === 'error')).toBe(false);
+    fs.rmSync(oldSchemaDir, { recursive: true, force: true });
   });
 });

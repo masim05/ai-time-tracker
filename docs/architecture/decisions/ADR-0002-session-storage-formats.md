@@ -62,6 +62,16 @@ attributed to `codex-app` when its `process_uuid` emitted at least one `logs`
 row whose `target` starts with `codex_app_server::`; otherwise it is
 `codex-cli`.
 
+### Codex session labels: latest explicit name, then generated title
+
+Codex persists latest-only thread labels in `state_5.sqlite`: `threads.name`
+contains an explicit user-assigned name and `threads.title` contains a
+provider-generated title. The reader trims both values and prefers a non-empty
+`name`; otherwise it uses a non-empty `title`. Because the store does not
+provide timestamped naming history, the selected label applies from launch
+start and is marked as approximate. Older compatible databases without the
+optional `title` column continue to use `name` only.
+
 ## Consequences
 
 - The reader depends on undocumented provider formats and may need updates if
@@ -70,6 +80,8 @@ row whose `target` starts with `codex_app_server::`; otherwise it is
 - Codex agent-time is an approximation derived from log activity, not an exact
   provider-reported duration; the clustering gap threshold is the main tuning
   parameter.
+- Codex historical label changes cannot be reconstructed from the supported
+  state database; only the latest explicit name or generated title is available.
 - All access is read-only and offline, satisfying the security constraints of
   the work item (no prompts, responses, source code, or tool output are read
   into diagnostics).
