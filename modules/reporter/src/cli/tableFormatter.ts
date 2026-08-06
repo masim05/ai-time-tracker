@@ -102,9 +102,20 @@ export class TableFormatter {
             substituteHome(String(value), this.options.homeDir),
           );
         }
+        if (column.id === 'name') {
+          return truncateWithEllipsis(String(value), 12);
+        }
         return String(value);
     }
   }
+}
+
+function truncateWithEllipsis(value: string, maxCharacters: number): string {
+  const characters = Array.from(value);
+  if (characters.length <= maxCharacters) {
+    return value;
+  }
+  return characters.slice(0, maxCharacters - 1).join('') + '…';
 }
 
 function toPathSlug(pathValue: string): string {

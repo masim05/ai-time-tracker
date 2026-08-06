@@ -88,6 +88,8 @@ Session-name behavior:
 - `name` reports the provider-persisted session label active during each row's
   time segment. For Codex, a trimmed explicit name takes precedence over a
   trimmed provider-generated title.
+- Table output limits names to 12 characters, using an ellipsis for longer
+  values. JSON and CSV preserve the full persisted label.
 - Name rows split at persisted rename boundaries when timestamped history is
   available.
 - If a provider exposes only latest-label metadata, the selected persisted

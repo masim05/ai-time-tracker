@@ -70,3 +70,10 @@ npm run cli -- report -f 2026-07-01 -a copilot -a claude
 ```
 
 Expected: Copilot and Claude results and diagnostics are unchanged.
+
+## E8 — Long session-name display
+
+Given a sanitized persisted session label longer than 12 characters
+When the same report is rendered as table, JSON, and CSV
+Then the table value contains at most 12 characters and ends in an ellipsis
+And JSON and CSV retain the complete persisted label.

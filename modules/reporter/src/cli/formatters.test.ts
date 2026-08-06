@@ -97,6 +97,25 @@ describe('TableFormatter', () => {
     // subagents is non-additive: '3', '7', '10' must not appear in total row
     expect(totalLine).not.toMatch(/\b(3|7|10)\b/);
   });
+
+  it('truncates session names to 12 characters with an ellipsis', () => {
+    const report = ColumnProjector.project(
+      [row({ name: 'authentication-refactor' })],
+      ['name'],
+    );
+    const out = new TableFormatter().format(report);
+    expect(out.split('\n')[1]).toBe('authenticat…');
+    expect(Array.from(out.split('\n')[1])).toHaveLength(12);
+  });
+
+  it('does not truncate session names at or below 12 characters', () => {
+    const report = ColumnProjector.project(
+      [row({ name: 'twelve-chars' })],
+      ['name'],
+    );
+    const out = new TableFormatter().format(report);
+    expect(out.split('\n')[1]).toBe('twelve-chars');
+  });
 });
 
 describe('JsonFormatter', () => {
@@ -112,6 +131,15 @@ describe('JsonFormatter', () => {
   it('emits [] for an empty result', () => {
     const report = ColumnProjector.project([], DEFAULT_IDS);
     expect(new JsonFormatter().format(report)).toBe('[]');
+  });
+
+  it('preserves the full session name', () => {
+    const report = ColumnProjector.project(
+      [row({ name: 'authentication-refactor' })],
+      ['name'],
+    );
+    const parsed = JSON.parse(new JsonFormatter().format(report));
+    expect(parsed[0].name).toBe('authentication-refactor');
   });
 
   it('emits null for an active session end', () => {
@@ -157,5 +185,14 @@ describe('CsvFormatter', () => {
     );
     const lines = new CsvFormatter().format(report).split('\n');
     expect(lines[1]).toBe('abc123,');
+  });
+
+  it('preserves the full session name', () => {
+    const report = ColumnProjector.project(
+      [row({ name: 'authentication-refactor' })],
+      ['name'],
+    );
+    const lines = new CsvFormatter().format(report).split('\n');
+    expect(lines[1]).toBe('authentication-refactor');
   });
 });

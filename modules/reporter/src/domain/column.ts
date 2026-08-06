@@ -77,7 +77,7 @@ export const COLUMNS: readonly ColumnSpec[] = [
   {
     id: 'name',
     header: 'name',
-    help: 'Explicit provider-persisted session name active during this row time segment.',
+    help: 'Provider-persisted session label active during this row segment (table: max 12 characters).',
     kind: 'text',
     accessor: (r) => r.name,
   },

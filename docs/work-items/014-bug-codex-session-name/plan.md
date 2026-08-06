@@ -41,6 +41,10 @@
    - run the focused and complete checks from `test-plan.md`;
    - run the E2E scenarios read-only on development-server Codex CLI/App data;
    - save only content-safe command/results summaries in `artifacts/`.
+8. **Address review-requested table width**
+   - limit the table `name` cell to 12 characters with an in-limit ellipsis;
+   - preserve the full persisted label in JSON and CSV;
+   - cover the boundary and machine-readable formats with formatter tests.
 
 ## Handoff boundaries
 

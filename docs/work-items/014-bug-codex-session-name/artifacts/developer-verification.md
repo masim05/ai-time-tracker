@@ -42,7 +42,7 @@ and intentionally omit all real label values.
 
 ```text
 npm run typecheck: passed
-npm test: 15 files passed, 175 tests passed
+npm test: 15 files passed, 179 tests passed
 npm run build: passed
 scripts/check-ai-flow-config.sh: passed
 tests/integration/check-ai-flow-config.sh: passed
@@ -51,3 +51,13 @@ scripts/check-specs.sh: passed
 scripts/check-dod.sh: passed
 scripts/check-pr.sh: passed
 ```
+
+## Review follow-up: table name width
+
+- Table names longer than 12 characters render as the first 11 characters plus
+  an ellipsis, for a maximum of 12 displayed characters.
+- Names of 12 or fewer characters remain unchanged.
+- JSON and CSV retain the complete persisted label.
+- Focused formatter suite: 15 tests passed.
+- Full suite, typecheck, build, all repository policy checks, and
+  `git diff --check` passed after the review fix.
