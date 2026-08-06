@@ -89,8 +89,9 @@ Session-name behavior:
   time segment. For Codex, a trimmed explicit name takes precedence over a
   trimmed provider-generated title.
 - Table output limits names to 16 terminal display cells, using an ellipsis for
-  longer values without splitting grapheme clusters. JSON and CSV preserve the
-  full persisted label.
+  longer values without splitting grapheme clusters. Control characters are
+  replaced in table cells to prevent terminal injection. JSON and CSV preserve
+  the full persisted label exactly.
 - Name rows split at persisted rename boundaries when timestamped history is
   available.
 - If a provider exposes only latest-label metadata, the selected persisted

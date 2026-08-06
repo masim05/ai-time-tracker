@@ -108,11 +108,15 @@ export class TableFormatter {
           );
         }
         if (column.id === 'name') {
-          return truncateToTerminalWidth(String(value), 16);
+          return truncateToTerminalWidth(sanitizeName(String(value)), 16);
         }
         return String(value);
     }
   }
+}
+
+function sanitizeName(value: string): string {
+  return value.replace(/\p{Control}/gu, '�');
 }
 
 function toPathSlug(pathValue: string): string {

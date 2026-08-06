@@ -55,8 +55,9 @@ Use or extend existing tests at the lowest meaningful layer to confirm:
 - table/JSON/CSV still render unset as `-`/`null`/empty and expose the same name;
 - table names at or below 16 terminal display cells remain unchanged; longer
   names truncate at a grapheme boundary to at most 16 cells including an
-  ellipsis; combining sequences, wide CJK, and joined emoji preserve alignment;
-  JSON/CSV retain the full name;
+  ellipsis; combining sequences, wide CJK, joined emoji, and keycap emoji
+  preserve alignment; table control characters are visibly replaced and cannot
+  inject lines or terminal controls; JSON/CSV retain the exact full name;
 - default column order, sorting, totals, duration, human time, and sub-agent
   count are unchanged.
 

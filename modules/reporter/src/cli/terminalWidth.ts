@@ -53,7 +53,9 @@ function graphemeWidth(grapheme: string): number {
   if (/^[\p{Mark}\p{Default_Ignorable_Code_Point}\p{Control}]+$/u.test(grapheme)) {
     return 0;
   }
-  if (/\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(grapheme)) {
+  if (
+    /\p{Extended_Pictographic}|\p{Regional_Indicator}|\u20e3/u.test(grapheme)
+  ) {
     return 2;
   }
 

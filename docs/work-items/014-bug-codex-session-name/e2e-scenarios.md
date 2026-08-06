@@ -78,3 +78,7 @@ When the same report is rendered as table, JSON, and CSV
 Then the table value contains at most 16 terminal display cells, does not split
 a grapheme cluster, and ends in an ellipsis
 And JSON and CSV retain the complete persisted label.
+
+Combining sequences, wide CJK, joined emoji, and keycap emoji retain table
+alignment. Newline, escape, tab, delete, and other control characters are
+replaced in the table only; JSON and CSV preserve their exact persisted values.

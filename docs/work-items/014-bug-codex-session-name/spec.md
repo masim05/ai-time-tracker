@@ -148,8 +148,9 @@ Out of scope:
   totals, and ordering remain unchanged.
 - Table output limits `name` to 16 terminal display cells, including a trailing
   ellipsis when truncation is required. Truncation preserves grapheme clusters,
-  and table padding accounts for combining, emoji, and wide CJK text. JSON and
-  CSV preserve the full label.
+  and table padding accounts for combining, emoji (including keycaps), and wide
+  CJK text. Control characters are replaced in table name cells to prevent line
+  and terminal-control injection. JSON and CSV preserve the full label exactly.
 - Automated fixtures are sanitized and live evidence contains no real session
   name or conversation content.
 

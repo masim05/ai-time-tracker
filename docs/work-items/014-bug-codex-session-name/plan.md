@@ -46,9 +46,10 @@
      ellipsis, preserving grapheme clusters;
    - calculate table widths and padding in terminal cells so combining, emoji,
      and wide CJK text remain aligned;
-   - preserve the full persisted label in JSON and CSV;
-   - cover combining sequences, wide CJK, emoji, exact boundaries, alignment,
-     and machine-readable formats with formatter tests.
+   - replace control characters in table name cells to prevent newline and ANSI
+     injection while preserving the full persisted label in JSON and CSV;
+   - cover combining sequences, wide CJK, joined and keycap emoji, exact
+     boundaries, controls, alignment, and machine-readable formats with tests.
 
 ## Handoff boundaries
 
