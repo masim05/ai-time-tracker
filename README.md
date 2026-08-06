@@ -85,12 +85,18 @@ invalid usage.
 
 Session-name behavior:
 
-- `name` reports the explicit provider-persisted session name active during each
-  row's time segment.
+- `name` reports the provider-persisted session label active during each row's
+  time segment. For Codex, a trimmed explicit name takes precedence over a
+  trimmed provider-generated title.
+- Table output limits names to 16 terminal display cells, using an ellipsis for
+  longer values without splitting grapheme clusters. Control characters are
+  replaced in table cells to prevent terminal injection. JSON and CSV preserve
+  the full persisted label exactly.
 - Name rows split at persisted rename boundaries when timestamped history is
   available.
-- If a provider exposes only latest-name metadata, the latest explicit name is
-  applied launch-wide with a warning; historical boundaries are unavailable.
+- If a provider exposes only latest-label metadata, the selected persisted
+  label is applied launch-wide with a warning; historical boundaries are
+  unavailable.
 - Unset names render as `-` (table), `null` (JSON), and an empty field (CSV).
 
 ## AI Flow: Required Setup

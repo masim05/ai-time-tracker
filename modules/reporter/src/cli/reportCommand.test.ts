@@ -108,6 +108,23 @@ describe('runReport', () => {
     expect(result.stderr).toContain('re-run with --verbose');
   });
 
+  it('exits 1 while preserving report output for malformed session-name metadata', () => {
+    const diagnostic: Diagnostic = {
+      provider: 'codex',
+      interfaceId: 'codex-cli',
+      sessionId: 'launch-a',
+      eventType: 'thread-metadata',
+      reason: 'explicit session name metadata had an unsupported type',
+      severity: 'error',
+    };
+    const result = runReport({}, deps([invocation()], [diagnostic]));
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toContain('codex-cli');
+    expect(result.stderr).toContain(
+      '1 record(s) could not be read; re-run with --verbose for details.',
+    );
+  });
+
   it('emits per-record diagnostics with --verbose and no session content', () => {
     const diag: Diagnostic = {
       provider: 'copilot',

@@ -5,6 +5,11 @@ import {
   formatLocalTimestamp,
   substituteHome,
 } from './formatUtils';
+import {
+  padToTerminalWidth,
+  terminalWidth,
+  truncateToTerminalWidth,
+} from './terminalWidth';
 
 export interface TableFormatterOptions {
   readonly homeDir?: string;
@@ -23,11 +28,11 @@ export class TableFormatter {
     const totalRow = this.buildTotalRow(columns, rows);
 
     const widths = columns.map((_c, i) => {
-      let w = headers[i].length;
+      let w = terminalWidth(headers[i]);
       for (const row of body) {
-        w = Math.max(w, row[i].length);
+        w = Math.max(w, terminalWidth(row[i]));
       }
-      w = Math.max(w, totalRow[i].length);
+      w = Math.max(w, terminalWidth(totalRow[i]));
       return w;
     });
 
@@ -75,7 +80,7 @@ export class TableFormatter {
   ): string {
     return cells
       .map((cell, i) =>
-        rightAlign[i] ? cell.padStart(widths[i]) : cell.padEnd(widths[i]),
+        padToTerminalWidth(cell, widths[i], rightAlign[i]),
       )
       .join('  ')
       .replace(/\s+$/, '');
@@ -102,9 +107,16 @@ export class TableFormatter {
             substituteHome(String(value), this.options.homeDir),
           );
         }
+        if (column.id === 'name') {
+          return truncateToTerminalWidth(sanitizeName(String(value)), 16);
+        }
         return String(value);
     }
   }
+}
+
+function sanitizeName(value: string): string {
+  return value.replace(/\p{Control}/gu, '�');
 }
 
 function toPathSlug(pathValue: string): string {
