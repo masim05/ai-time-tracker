@@ -75,5 +75,6 @@ Expected: Copilot and Claude results and diagnostics are unchanged.
 
 Given a sanitized persisted session label longer than 16 characters
 When the same report is rendered as table, JSON, and CSV
-Then the table value contains at most 16 characters and ends in an ellipsis
+Then the table value contains at most 16 terminal display cells, does not split
+a grapheme cluster, and ends in an ellipsis
 And JSON and CSV retain the complete persisted label.

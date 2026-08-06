@@ -42,7 +42,7 @@ and intentionally omit all real label values.
 
 ```text
 npm run typecheck: passed
-npm test: 15 files passed, 179 tests passed
+npm test: 15 files passed, 186 tests passed
 npm run build: passed
 scripts/check-ai-flow-config.sh: passed
 tests/integration/check-ai-flow-config.sh: passed
@@ -54,10 +54,11 @@ scripts/check-pr.sh: passed
 
 ## Review follow-up: table name width
 
-- Table names longer than 16 characters render as the first 15 characters plus
-  an ellipsis, for a maximum of 16 displayed characters.
-- Names of 16 or fewer characters remain unchanged.
+- Table names longer than 16 terminal display cells truncate at a grapheme
+  boundary and include an ellipsis within the 16-cell limit.
+- Names of exactly 16 cells remain unchanged. Combining sequences, joined emoji,
+  and wide CJK names are covered, and following columns stay cell-aligned.
 - JSON and CSV retain the complete persisted label.
-- Focused formatter suite: 15 tests passed.
+- Focused formatter suite: 22 tests passed.
 - Full suite, typecheck, build, all repository policy checks, and
   `git diff --check` passed after the review fix.

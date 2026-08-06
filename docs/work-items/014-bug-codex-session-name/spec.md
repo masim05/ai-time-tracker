@@ -146,8 +146,10 @@ Out of scope:
   and preserves other valid report results under the existing exit-code policy.
 - Existing non-Codex behavior, table/JSON/CSV equivalence, default columns,
   totals, and ordering remain unchanged.
-- Table output limits `name` to 16 displayed characters, including a trailing
-  ellipsis when truncation is required; JSON and CSV preserve the full label.
+- Table output limits `name` to 16 terminal display cells, including a trailing
+  ellipsis when truncation is required. Truncation preserves grapheme clusters,
+  and table padding accounts for combining, emoji, and wide CJK text. JSON and
+  CSV preserve the full label.
 - Automated fixtures are sanitized and live evidence contains no real session
   name or conversation content.
 

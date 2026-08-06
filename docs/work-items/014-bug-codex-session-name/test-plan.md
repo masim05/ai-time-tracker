@@ -53,8 +53,10 @@ Use or extend existing tests at the lowest meaningful layer to confirm:
 - period and path clipping preserve applicable names;
 - adjacent identical values do not create redundant rows;
 - table/JSON/CSV still render unset as `-`/`null`/empty and expose the same name;
-- table names at or below 16 characters remain unchanged, longer names use a
-  16-character value ending in an ellipsis, and JSON/CSV retain the full name;
+- table names at or below 16 terminal display cells remain unchanged; longer
+  names truncate at a grapheme boundary to at most 16 cells including an
+  ellipsis; combining sequences, wide CJK, and joined emoji preserve alignment;
+  JSON/CSV retain the full name;
 - default column order, sorting, totals, duration, human time, and sub-agent
   count are unchanged.
 

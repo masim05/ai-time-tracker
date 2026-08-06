@@ -42,9 +42,13 @@
    - run the E2E scenarios read-only on development-server Codex CLI/App data;
    - save only content-safe command/results summaries in `artifacts/`.
 8. **Address review-requested table width**
-   - limit the table `name` cell to 16 characters with an in-limit ellipsis;
+   - limit the table `name` cell to 16 terminal display cells with an in-limit
+     ellipsis, preserving grapheme clusters;
+   - calculate table widths and padding in terminal cells so combining, emoji,
+     and wide CJK text remain aligned;
    - preserve the full persisted label in JSON and CSV;
-   - cover the boundary and machine-readable formats with formatter tests.
+   - cover combining sequences, wide CJK, emoji, exact boundaries, alignment,
+     and machine-readable formats with formatter tests.
 
 ## Handoff boundaries
 

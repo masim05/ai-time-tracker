@@ -5,6 +5,7 @@ import { ColumnId } from '../domain/column';
 import { TableFormatter } from './tableFormatter';
 import { JsonFormatter } from './jsonFormatter';
 import { CsvFormatter } from './csvFormatter';
+import { terminalWidth } from './terminalWidth';
 
 beforeAll(() => {
   process.env.TZ = 'UTC';
@@ -116,6 +117,35 @@ describe('TableFormatter', () => {
     const out = new TableFormatter().format(report);
     expect(out.split('\n')[1]).toBe('1234567890abcdef');
   });
+
+  it.each([
+    ['combining characters', 'e\u0301'.repeat(17), 'e\u0301'.repeat(15) + '…'],
+    ['wide CJK characters', '会'.repeat(9), '会'.repeat(7) + '…'],
+    ['joined emoji', '👩‍💻'.repeat(9), '👩‍💻'.repeat(7) + '…'],
+  ])('truncates %s at grapheme boundaries within 16 display cells', (_case, name, expected) => {
+    const report = ColumnProjector.project([row({ name })], ['name']);
+    const rendered = new TableFormatter().format(report).split('\n')[1];
+    expect(rendered).toBe(expected);
+    expect(terminalWidth(rendered)).toBeLessThanOrEqual(16);
+  });
+
+  it('keeps an exact 16-cell wide name unchanged', () => {
+    const name = '会'.repeat(8);
+    const report = ColumnProjector.project([row({ name })], ['name']);
+    expect(new TableFormatter().format(report).split('\n')[1]).toBe(name);
+  });
+
+  it('aligns following columns by terminal display width', () => {
+    const report = ColumnProjector.project(
+      [row({ name: '会話' }), row({ name: 'plain' })],
+      ['name', 'agent'],
+    );
+    const lines = new TableFormatter().format(report).split('\n');
+    const agentOffsets = lines.slice(0, 3).map((line) =>
+      terminalWidth(line.slice(0, line.lastIndexOf('codex-cli') >= 0 ? line.lastIndexOf('codex-cli') : line.lastIndexOf('agent'))),
+    );
+    expect(new Set(agentOffsets).size).toBe(1);
+  });
 });
 
 describe('JsonFormatter', () => {
@@ -140,6 +170,12 @@ describe('JsonFormatter', () => {
     );
     const parsed = JSON.parse(new JsonFormatter().format(report));
     expect(parsed[0].name).toBe('authentication-refactor');
+  });
+
+  it('preserves a full Unicode session name', () => {
+    const name = '👩‍💻-e\u0301-会話'.repeat(4);
+    const report = ColumnProjector.project([row({ name })], ['name']);
+    expect(JSON.parse(new JsonFormatter().format(report))[0].name).toBe(name);
   });
 
   it('emits null for an active session end', () => {
@@ -194,5 +230,11 @@ describe('CsvFormatter', () => {
     );
     const lines = new CsvFormatter().format(report).split('\n');
     expect(lines[1]).toBe('authentication-refactor');
+  });
+
+  it('preserves a full Unicode session name', () => {
+    const name = '👩‍💻-e\u0301-会話'.repeat(4);
+    const report = ColumnProjector.project([row({ name })], ['name']);
+    expect(new CsvFormatter().format(report).split('\n')[1]).toBe(name);
   });
 });
