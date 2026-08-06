@@ -74,8 +74,63 @@ describe('ClaudeCliReader', () => {
     expect(root.startMs).toBe(at('2026-07-15T09:00:00Z'));
     expect(root.endMs).toBe(at('2026-07-15T09:17:00Z'));
     expect(root.sessionNameEvents).toEqual([
-      { timestampMs: at('2026-07-15T09:00:00Z'), name: 'alpha' },
-      { timestampMs: at('2026-07-15T09:10:00Z'), name: 'beta' },
+      { timestampMs: at('2026-07-15T09:10:00Z'), name: 'alpha' },
+      { timestampMs: at('2026-07-15T09:12:00Z'), name: 'beta' },
+    ]);
+  });
+
+  it('extracts one session-name event per /rename record, in transcript order', () => {
+    // Regression for the bug: Claude Code persists a rename as a
+    // `system` / `local_command` record carrying the `/rename` invocation, and
+    // nothing else in the transcript names the session.
+    const [root] = launchOf(read(), S1);
+    expect(root.sessionNameEvents).toEqual([
+      { timestampMs: at('2026-07-15T09:10:00Z'), name: 'alpha' },
+      { timestampMs: at('2026-07-15T09:12:00Z'), name: 'beta' },
+    ]);
+  });
+
+  it('ignores local command records that are not a rename', () => {
+    // The transcript also holds a `/compact` invocation and the
+    // `<local-command-stdout>` record a rename writes after itself.
+    const [root] = launchOf(read(), S1);
+    const names = (root.sessionNameEvents ?? []).map((event) => event.name);
+    expect(names).toEqual(['alpha', 'beta']);
+  });
+
+  it('warns without content when a rename records no name', () => {
+    const result = read();
+    const warnings = result.diagnostics.filter(
+      (d) => d.eventType === 'session-rename',
+    );
+    // An empty argument at 09:13 and a whitespace-only one at 09:15.
+    expect(warnings).toHaveLength(2);
+    expect(warnings.map((d) => d.timestampMs)).toEqual([
+      at('2026-07-15T09:13:00Z'),
+      at('2026-07-15T09:15:00Z'),
+    ]);
+    for (const warning of warnings) {
+      expect(warning.provider).toBe('claude');
+      expect(warning.interfaceId).toBe('claude-cli');
+      expect(warning.sessionId).toBe(S1);
+      expect(warning.severity).toBe('warning');
+      expect(warning.reason).toBe('rename command recorded no session name');
+    }
+    // The nameless renames produce no event; the named ones still do.
+    const [root] = launchOf(result, S1);
+    expect(root.sessionNameEvents).toHaveLength(2);
+  });
+
+  it('keeps a replayed rename with the launch that recorded it first', () => {
+    // S2 resumes S1, so S1's two renames are replayed into its transcript;
+    // only the rename S2 recorded itself belongs to it.
+    const [resumed] = launchOf(read(), S2);
+    expect(resumed.sessionNameEvents).toEqual([
+      { timestampMs: at('2026-07-15T09:41:00Z'), name: 'gamma' },
+    ]);
+    const [original] = launchOf(read(), S1);
+    expect(original.sessionNameEvents).toEqual([
+      { timestampMs: at('2026-07-15T09:10:00Z'), name: 'alpha' },
       { timestampMs: at('2026-07-15T09:12:00Z'), name: 'beta' },
     ]);
   });

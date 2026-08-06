@@ -24,6 +24,7 @@ export interface ClaudeCliReaderOptions {
 /** A single parsed transcript record (only the fields this reader needs). */
 export interface ClaudeTranscriptRecord {
   type?: string;
+  subtype?: string;
   uuid?: string;
   sessionId?: string;
   timestamp?: string;
@@ -35,8 +36,8 @@ export interface ClaudeTranscriptRecord {
   toolUseResult?: unknown;
   sourceToolAssistantUUID?: string;
   sourceToolUseID?: string;
-  sessionName?: string;
-  sessionNameSource?: string;
+  /** Slash-command payload of a `system` / `local_command` record. */
+  content?: unknown;
 }
 
 /** A transcript file that survived parsing. */
@@ -494,6 +495,26 @@ export class ClaudeCliReader implements ISessionReader {
   }
 }
 
+/**
+ * Matches the `/rename` slash command inside the `content` of a
+ * `system` / `local_command` record. Other local commands and the
+ * `<local-command-stdout>` record that follows one do not match.
+ */
+const RENAME_COMMAND_PATTERN = /<command-name>\s*\/rename\s*<\/command-name>/;
+
+/** Captures the argument of a slash command recorded in `content`. */
+const COMMAND_ARGS_PATTERN = /<command-args>([\s\S]*?)<\/command-args>/;
+
+/**
+ * Collects the explicit session names a launch recorded, in transcript order.
+ *
+ * Claude Code persists a rename as a timestamped `system` / `local_command`
+ * transcript record holding the `/rename` invocation, which is the only durable
+ * source of name history; the `sessions/<pid>.json` registry keeps only the
+ * latest name of a recent launch and carries no timestamp. Records replayed
+ * into a resumed transcript are filtered out before this point, so a rename
+ * stays attributed to the launch that recorded it first.
+ */
 function extractClaudeNameEvents(
   timed: readonly { record: ClaudeTranscriptRecord; ts: number }[],
   sessionId: string,
@@ -501,41 +522,42 @@ function extractClaudeNameEvents(
 ): SessionNameEvent[] {
   const events: SessionNameEvent[] = [];
   for (const { record, ts } of timed) {
-    const candidate = explicitClaudeName(record);
-    if (candidate === undefined) {
+    const argument = renameArgument(record);
+    if (argument === undefined) {
       continue;
     }
-    if (candidate.trim().length === 0) {
+    const name = argument.trim();
+    if (name.length === 0) {
       diagnostics.push({
         provider: 'claude',
         interfaceId: 'claude-cli',
         sessionId,
-        eventType: 'session-name-metadata',
+        eventType: 'session-rename',
         timestampMs: ts,
-        reason: 'explicit session name metadata was empty or whitespace',
+        reason: 'rename command recorded no session name',
         severity: 'warning',
       });
       continue;
     }
-    events.push({ timestampMs: ts, name: candidate });
+    events.push({ timestampMs: ts, name });
   }
   return events;
 }
 
-function explicitClaudeName(
-  record: ClaudeTranscriptRecord,
-): string | undefined {
-  if (typeof record.sessionName !== 'string') {
+/**
+ * The raw argument of a `/rename` record, or `undefined` when the record is not
+ * one. A `/rename` without an argument yields an empty string, which the caller
+ * reports as a nameless rename.
+ */
+function renameArgument(record: ClaudeTranscriptRecord): string | undefined {
+  if (record.type !== 'system' || record.subtype !== 'local_command') {
     return undefined;
   }
-  const source = record.sessionNameSource;
-  if (source === undefined) {
-    return record.sessionName;
+  const content = record.content;
+  if (typeof content !== 'string' || !RENAME_COMMAND_PATTERN.test(content)) {
+    return undefined;
   }
-  if (source === 'user' || source === 'rename' || source === 'launch') {
-    return record.sessionName;
-  }
-  return undefined;
+  return COMMAND_ARGS_PATTERN.exec(content)?.[1] ?? '';
 }
 
 /**
