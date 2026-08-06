@@ -73,7 +73,7 @@ Expected: Copilot and Claude results and diagnostics are unchanged.
 
 ## E8 — Long session-name display
 
-Given a sanitized persisted session label longer than 12 characters
+Given a sanitized persisted session label longer than 16 characters
 When the same report is rendered as table, JSON, and CSV
-Then the table value contains at most 12 characters and ends in an ellipsis
+Then the table value contains at most 16 characters and ends in an ellipsis
 And JSON and CSV retain the complete persisted label.

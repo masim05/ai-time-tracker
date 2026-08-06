@@ -103,7 +103,7 @@ export class TableFormatter {
           );
         }
         if (column.id === 'name') {
-          return truncateWithEllipsis(String(value), 12);
+          return truncateWithEllipsis(String(value), 16);
         }
         return String(value);
     }

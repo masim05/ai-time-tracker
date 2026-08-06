@@ -54,9 +54,9 @@ scripts/check-pr.sh: passed
 
 ## Review follow-up: table name width
 
-- Table names longer than 12 characters render as the first 11 characters plus
-  an ellipsis, for a maximum of 12 displayed characters.
-- Names of 12 or fewer characters remain unchanged.
+- Table names longer than 16 characters render as the first 15 characters plus
+  an ellipsis, for a maximum of 16 displayed characters.
+- Names of 16 or fewer characters remain unchanged.
 - JSON and CSV retain the complete persisted label.
 - Focused formatter suite: 15 tests passed.
 - Full suite, typecheck, build, all repository policy checks, and

@@ -98,23 +98,23 @@ describe('TableFormatter', () => {
     expect(totalLine).not.toMatch(/\b(3|7|10)\b/);
   });
 
-  it('truncates session names to 12 characters with an ellipsis', () => {
+  it('truncates session names to 16 characters with an ellipsis', () => {
     const report = ColumnProjector.project(
       [row({ name: 'authentication-refactor' })],
       ['name'],
     );
     const out = new TableFormatter().format(report);
-    expect(out.split('\n')[1]).toBe('authenticat…');
-    expect(Array.from(out.split('\n')[1])).toHaveLength(12);
+    expect(out.split('\n')[1]).toBe('authentication-…');
+    expect(Array.from(out.split('\n')[1])).toHaveLength(16);
   });
 
-  it('does not truncate session names at or below 12 characters', () => {
+  it('does not truncate session names at or below 16 characters', () => {
     const report = ColumnProjector.project(
-      [row({ name: 'twelve-chars' })],
+      [row({ name: '1234567890abcdef' })],
       ['name'],
     );
     const out = new TableFormatter().format(report);
-    expect(out.split('\n')[1]).toBe('twelve-chars');
+    expect(out.split('\n')[1]).toBe('1234567890abcdef');
   });
 });
 

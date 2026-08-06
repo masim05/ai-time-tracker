@@ -260,7 +260,7 @@ ${columnDocs}
   Signed and unsigned tokens must not be mixed.
 
 Time calculation:
-  name        Provider-persisted session label; table values are limited to 12 characters.
+  name        Provider-persisted session label; table values are limited to 16 characters.
               Unset name renders as '-' (table), null (json), or empty (csv).
               Rows are split at persisted rename boundaries in timestamp order.
               Latest-only provider name storage is applied launch-wide with a warning.
