@@ -20,6 +20,8 @@ const S6 = 's6-6666-6666-6666-666666666666';
 const S7 = 's7-7777-7777-7777-777777777777';
 const S8 = 's8-8888-8888-8888-888888888888';
 const S9 = 's9-9999-9999-9999-999999999999';
+const S10 = 's10-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+const S11 = 's11-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 
 /** Reads the fixture tree with a deterministic liveness probe. */
 function read(options: { alivePids?: number[] } = {}): ReadResult {
@@ -170,6 +172,30 @@ describe('ClaudeCliReader', () => {
         (d) => d.sessionId === S1 && d.eventType === 'custom-title-metadata',
       ),
     ).toBe(false);
+  });
+
+  it('keeps a resumed launch on its own rename history when it has one', () => {
+    // S11 resumes S10 and carries a `custom-title`, but it also recorded a
+    // rename of its own: the fallback must stay unused, and the rename S10
+    // recorded first must not follow the resume.
+    const result = read();
+    const [resumed] = launchOf(result, S11);
+    expect(resumed.sessionNameEvents).toEqual([
+      { timestampMs: at('2026-07-21T09:32:00Z'), name: 'resumed-own-name' },
+    ]);
+    expect(resumed.hasApproximateNameHistory).toBe(false);
+    expect(
+      result.diagnostics.some(
+        (d) => d.sessionId === S11 && d.eventType === 'custom-title-metadata',
+      ),
+    ).toBe(false);
+
+    // The original keeps the rename it recorded first, also from its own history.
+    const [original] = launchOf(result, S10);
+    expect(original.sessionNameEvents).toEqual([
+      { timestampMs: at('2026-07-21T09:03:00Z'), name: 'first-name' },
+    ]);
+    expect(original.hasApproximateNameHistory).toBe(false);
   });
 
   it('applies a custom-title fallback to the launch root only', () => {

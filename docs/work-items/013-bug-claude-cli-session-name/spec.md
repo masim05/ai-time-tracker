@@ -154,6 +154,11 @@ Out of scope:
   span with a latest-only warning, because the record carries no timestamp. A
   rename boundary inside such a launch cannot be recovered; the launch that
   recorded the `/rename` keeps the exact history.
+- The mirror case: a resumed launch that renames itself mid-launch reports the
+  period before that rename as unnamed. Its own rename history correctly wins
+  over `custom-title`, and neither source can recover the name it inherited for
+  that earlier period — the `/rename` that set the inherited name belongs to the
+  launch that recorded it, and `custom-title` holds only the latest name.
 - Sessions named before this record shape existed, or named by a mechanism that
   leaves no transcript record, remain unnamed.
 - Auto-derived `agent-name` titles are never reported as session names.

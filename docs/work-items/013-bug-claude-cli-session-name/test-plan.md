@@ -24,6 +24,10 @@ holds `system` / `local_command` `/rename` records yields the matching
     diagnostic;
   - a rename record replayed into a resumed launch is attributed to the launch
     that recorded it first;
+  - a resumed launch that recorded a rename of its own reports that rename
+    history rather than its `custom-title`, with `hasApproximateNameHistory`
+    false and no latest-only warning, while the original keeps the rename it
+    recorded first;
   - `custom-title` fallback: a launch that recorded no `/rename` of its own
     reports the **last** `custom-title` value from its launch start, sets
     `hasApproximateNameHistory`, and emits the same latest-only warning the
