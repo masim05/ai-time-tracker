@@ -301,7 +301,7 @@ function resolveCodexNameEvents(
       sessionId: thread.id,
       eventType: 'thread-metadata',
       reason: 'explicit session name metadata had an unsupported type',
-      severity: 'warning',
+      severity: 'error',
     });
   }
   if (thread.name !== undefined && thread.name !== null && explicitName === undefined) {
@@ -323,7 +323,7 @@ function resolveCodexNameEvents(
       sessionId: thread.id,
       eventType: 'thread-metadata',
       reason: 'generated session title metadata had an unsupported type',
-      severity: 'warning',
+      severity: 'error',
     });
   }
   if (thread.title !== undefined && thread.title !== null && generatedTitle === undefined) {

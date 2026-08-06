@@ -45,6 +45,16 @@ beforeAll(() => {
     null,
     Buffer.from([42]),
   );
+  // An unsupported explicit-name type is malformed even when title fallback works.
+  insThread.run(
+    'T-malformed-name',
+    4750,
+    875000,
+    '/home/dev/app6',
+    'user',
+    Buffer.from([43]),
+    'generated fallback title',
+  );
   state
     .prepare(
       'INSERT INTO thread_spawn_edges (parent_thread_id, child_thread_id, status) VALUES (?,?,?)',
@@ -75,6 +85,7 @@ beforeAll(() => {
   insLog.run(3, 0, 'INFO', 'codex_core::turn', 'T-title', 'P3');
   insLog.run(4, 0, 'INFO', 'codex_core::turn', 'T-unnamed', 'P4');
   insLog.run(4, 500000000, 'INFO', 'codex_core::turn', 'T-malformed', 'P6');
+  insLog.run(4, 750000000, 'INFO', 'codex_core::turn', 'T-malformed-name', 'P7');
   logs.close();
 
   fs.writeFileSync(
@@ -192,7 +203,7 @@ describe('CodexReader', () => {
     expect(unnamed.hasApproximateNameHistory).toBe(false);
   });
 
-  it('diagnoses malformed label metadata without exposing its value or aborting', () => {
+  it('reports unsupported generated-title metadata as an error without exposing its value', () => {
     const { invocations, diagnostics } = read();
     const malformed = invocations.find(
       (i) => i.invocationId === 'T-malformed',
@@ -204,7 +215,25 @@ describe('CodexReader', () => {
         item.reason === 'generated session title metadata had an unsupported type',
     );
     expect(diagnostic).toBeDefined();
+    expect(diagnostic?.severity).toBe('error');
     expect(diagnostic?.reason).not.toContain('42');
+  });
+
+  it('reports unsupported explicit-name metadata as an error while preserving title fallback', () => {
+    const { invocations, diagnostics } = read();
+    const malformed = invocations.find(
+      (i) => i.invocationId === 'T-malformed-name',
+    ) as NormalizedInvocation;
+    expect(malformed.sessionNameEvents).toEqual([
+      { timestampMs: 4750, name: 'generated fallback title' },
+    ]);
+    const diagnostic = diagnostics.find(
+      (item) =>
+        item.sessionId === 'T-malformed-name' &&
+        item.reason === 'explicit session name metadata had an unsupported type',
+    );
+    expect(diagnostic?.severity).toBe('error');
+    expect(diagnostic?.reason).not.toContain('43');
   });
 
   it('derives agent spans from clustered log timestamps', () => {

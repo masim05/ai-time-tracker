@@ -14,14 +14,18 @@ content was captured.
 ## Automated regression
 
 ```text
-npm test -- modules/session-reader/src/infrastructure/codexReader.test.ts
-14 tests passed
+npm test -- modules/session-reader/src/infrastructure/codexReader.test.ts modules/reporter/src/cli/reportCommand.test.ts
+2 files passed, 28 tests passed
 ```
 
 The focused cases cover CLI and App titles, explicit-name precedence,
 whitespace normalization and fallback, ordinary-message non-inference, root
 only attribution, latest-value warnings, unnamed sessions, and compatibility
-with a state database that lacks the optional `title` column.
+with a state database that lacks the optional `title` column. They also verify
+that unsupported non-string explicit names and generated titles produce error
+diagnostics without exposing their values, and that these errors preserve valid
+report output while producing exit code `1`. Blank and whitespace-only strings
+remain warning diagnostics.
 
 ## Live report verification
 
@@ -38,7 +42,7 @@ and intentionally omit all real label values.
 
 ```text
 npm run typecheck: passed
-npm test: 15 files passed, 173 tests passed
+npm test: 15 files passed, 175 tests passed
 npm run build: passed
 scripts/check-ai-flow-config.sh: passed
 tests/integration/check-ai-flow-config.sh: passed
