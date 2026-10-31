@@ -31,14 +31,23 @@ interface ThreadRow {
   thread_source: string | null;
   name?: unknown;
   title?: unknown;
+  rollout_path?: unknown;
+}
+
+/** Turn activity derived from a thread's rollout JSONL. */
+interface RolloutActivity {
+  readonly spans: WorkInterval[];
+  readonly prompts: number[];
 }
 
 const DEFAULT_IDLE_GAP_MS = 2 * 60 * 1000;
 
 /**
  * Reads Codex CLI and Codex App sessions from the shared `~/.codex` backend:
- * `state_5.sqlite` (threads + spawn edges), `logs_2.sqlite` (per-thread activity
- * and app detection), and `history.jsonl` (human prompt timestamps).
+ * `state_5.sqlite` (threads + spawn edges), per-thread rollout JSONL files
+ * (turn-based agent activity and human prompts), `logs_2.sqlite` (thread
+ * start/end activity, app detection, and fallback agent activity), and
+ * `history.jsonl` (fallback human prompt timestamps).
  *
  * All database handles are opened read-only.
  */
@@ -81,9 +90,12 @@ export class CodexReader implements ISessionReader {
         const titleSelection = threadColumns.has('title')
           ? 'title'
           : 'NULL AS title';
+        const rolloutSelection = threadColumns.has('rollout_path')
+          ? 'rollout_path'
+          : 'NULL AS rollout_path';
         threads = state
           .prepare(
-            `SELECT id, created_at_ms, updated_at_ms, cwd, thread_source, name, ${titleSelection} FROM threads`,
+            `SELECT id, created_at_ms, updated_at_ms, cwd, thread_source, name, ${titleSelection}, ${rolloutSelection} FROM threads`,
           )
           .all() as ThreadRow[];
         edges = state
@@ -129,24 +141,33 @@ export class CodexReader implements ISessionReader {
         : 'codex-cli';
 
       const logTimestamps = logInfo.timestampsByThread.get(thread.id) ?? [];
-      const spans: WorkInterval[] =
+      const logSpans: WorkInterval[] =
         logTimestamps.length > 0
           ? clusterTimestamps(logTimestamps, this.idleGapMs)
           : [{ startMs: thread.created_at_ms, endMs: thread.updated_at_ms ?? thread.created_at_ms }];
 
+      // Thread start/end keep following thread metadata and log activity.
       const start = Math.min(
         thread.created_at_ms,
-        ...spans.map((s) => s.startMs),
+        ...logSpans.map((s) => s.startMs),
       );
       const end = Math.max(
         thread.updated_at_ms ?? thread.created_at_ms,
-        ...spans.map((s) => s.endMs),
+        ...logSpans.map((s) => s.endMs),
       );
+
+      // Agent activity and prompts come from rollout turns when available;
+      // log rows cover the whole open thread, so they are only a fallback.
+      const rollout = this.readRollout(thread, diagnostics);
+      const spans =
+        rollout && rollout.spans.length > 0 ? rollout.spans : logSpans;
 
       const prompts =
         thread.thread_source === 'subagent'
           ? []
-          : promptsByThread.get(thread.id) ?? [];
+          : rollout && rollout.prompts.length > 0
+            ? rollout.prompts
+            : promptsByThread.get(thread.id) ?? [];
 
       const nameEvents = resolveCodexNameEvents(
         thread,
@@ -237,6 +258,137 @@ export class CodexReader implements ISessionReader {
     return { timestampsByThread, appThreads };
   }
 
+  /**
+   * Derives turn spans and human prompts from a thread's rollout JSONL.
+   *
+   * Privacy: only `timestamp`, `type`, `payload.type`, and
+   * `payload.turn_attribution.turn_trigger` are inspected; no other record
+   * content is retained or emitted in diagnostics. Returns `undefined` when
+   * the thread has no rollout or the file cannot be read.
+   */
+  private readRollout(
+    thread: ThreadRow,
+    diagnostics: Diagnostic[],
+  ): RolloutActivity | undefined {
+    if (typeof thread.rollout_path !== 'string' || thread.rollout_path.trim() === '') {
+      return undefined;
+    }
+    const rolloutPath = path.resolve(this.baseDir, thread.rollout_path);
+    if (!fs.existsSync(rolloutPath)) {
+      diagnostics.push({
+        provider: 'codex',
+        sessionId: thread.id,
+        filePath: rolloutPath,
+        reason: 'Codex rollout file not found',
+        severity: 'warning',
+      });
+      return undefined;
+    }
+    let text: string;
+    try {
+      text = fs.readFileSync(rolloutPath, 'utf8');
+    } catch {
+      diagnostics.push({
+        provider: 'codex',
+        sessionId: thread.id,
+        filePath: rolloutPath,
+        reason: 'Codex rollout file could not be read',
+        severity: 'warning',
+      });
+      return undefined;
+    }
+
+    const spans: WorkInterval[] = [];
+    const prompts: number[] = [];
+    let open: { startMs: number; attributed: boolean } | undefined;
+    let lastTimestampMs: number | undefined;
+    let untimedAfterLast = false;
+
+    const lines = text.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) {
+        continue;
+      }
+      let record: RolloutLineFields;
+      try {
+        record = pickRolloutFields(JSON.parse(line));
+      } catch {
+        diagnostics.push({
+          provider: 'codex',
+          sessionId: thread.id,
+          filePath: rolloutPath,
+          eventType: 'jsonl-line',
+          reason: `malformed rollout line ${i + 1}`,
+          severity: 'warning',
+        });
+        continue;
+      }
+      const ms = record.timestamp !== undefined ? Date.parse(record.timestamp) : NaN;
+      const hasTime = Number.isFinite(ms);
+      if (hasTime) {
+        lastTimestampMs = lastTimestampMs === undefined ? ms : Math.max(lastTimestampMs, ms);
+        untimedAfterLast = false;
+      } else {
+        untimedAfterLast = true;
+      }
+      if (record.type !== 'event_msg') {
+        continue;
+      }
+      const eventType = record.payloadType;
+      if (
+        eventType !== 'task_started' &&
+        eventType !== 'task_complete' &&
+        eventType !== 'turn_aborted' &&
+        eventType !== 'user_message'
+      ) {
+        continue;
+      }
+      if (!hasTime) {
+        diagnostics.push({
+          provider: 'codex',
+          sessionId: thread.id,
+          filePath: rolloutPath,
+          eventType,
+          reason: `rollout turn event on line ${i + 1} has no valid timestamp`,
+          severity: 'warning',
+        });
+        continue;
+      }
+      if (eventType === 'task_started') {
+        if (open) {
+          // A new turn implicitly ends a turn that never completed.
+          spans.push({ startMs: open.startMs, endMs: Math.max(open.startMs, ms) });
+        }
+        const attributed = record.turnTrigger !== undefined;
+        open = { startMs: ms, attributed };
+        if (record.turnTrigger === 'user') {
+          prompts.push(ms);
+        }
+      } else if (eventType === 'user_message') {
+        if (open && !open.attributed) {
+          prompts.push(ms);
+        }
+      } else if (open) {
+        spans.push({ startMs: open.startMs, endMs: Math.max(open.startMs, ms) });
+        open = undefined;
+      }
+    }
+
+    if (open) {
+      let endMs = lastTimestampMs ?? open.startMs;
+      if (untimedAfterLast && thread.updated_at_ms !== null) {
+        endMs = Math.max(endMs, thread.updated_at_ms);
+      }
+      spans.push({ startMs: open.startMs, endMs: Math.max(open.startMs, endMs) });
+    }
+
+    return {
+      spans,
+      prompts: [...new Set(prompts)].sort((a, b) => a - b),
+    };
+  }
+
   private readPrompts(diagnostics: Diagnostic[]): Map<string, number[]> {
     const byThread = new Map<string, number[]>();
     const historyPath = path.join(this.baseDir, 'history.jsonl');
@@ -280,6 +432,44 @@ export class CodexReader implements ISessionReader {
     }
     return byThread;
   }
+}
+
+/** The only rollout record fields the reader is allowed to inspect. */
+interface RolloutLineFields {
+  readonly timestamp?: string;
+  readonly type?: string;
+  readonly payloadType?: string;
+  readonly turnTrigger?: string;
+}
+
+/**
+ * Extracts the allowed structural fields from a parsed rollout record and
+ * discards everything else (prompt, response, and tool content).
+ */
+function pickRolloutFields(value: unknown): RolloutLineFields {
+  if (typeof value !== 'object' || value === null) {
+    throw new Error('rollout record is not an object');
+  }
+  const record = value as Record<string, unknown>;
+  const payload =
+    typeof record.payload === 'object' && record.payload !== null
+      ? (record.payload as Record<string, unknown>)
+      : undefined;
+  const attribution =
+    payload &&
+    typeof payload.turn_attribution === 'object' &&
+    payload.turn_attribution !== null
+      ? (payload.turn_attribution as Record<string, unknown>)
+      : undefined;
+  return {
+    timestamp: typeof record.timestamp === 'string' ? record.timestamp : undefined,
+    type: typeof record.type === 'string' ? record.type : undefined,
+    payloadType: typeof payload?.type === 'string' ? payload.type : undefined,
+    turnTrigger:
+      typeof attribution?.turn_trigger === 'string'
+        ? attribution.turn_trigger
+        : undefined,
+  };
 }
 
 function resolveCodexNameEvents(

@@ -125,3 +125,34 @@ describe('TimeCalculator.humanActivity guards', () => {
     expect(result).toEqual({ humanMs: 10 * MIN, inactiveMs: 0 });
   });
 });
+
+describe('TimeCalculator.humanActivity for Codex rollout turns (regression #17)', () => {
+  // Same sanitized timings as the CodexReader rollout regression fixture:
+  // thread starts at 0, two user turns at 26.733s and 54.405s.
+  const turnSpans = [
+    { startMs: 26_733, endMs: 29_963 },
+    { startMs: 54_405, endMs: 59_241 },
+  ];
+  const prompts = [26_733, 54_405];
+
+  it('reports no human time when one log-cluster span covers the thread', () => {
+    const result = TimeCalculator.humanActivity({
+      launchStartMs: 0,
+      promptsMs: prompts,
+      agentIntervals: [{ startMs: 0, endMs: 60_000 }],
+      period: FULL,
+    });
+    expect(result.humanMs).toBe(0);
+  });
+
+  it('counts idle time before each prompt when spans follow rollout turns', () => {
+    const result = TimeCalculator.humanActivity({
+      launchStartMs: 0,
+      promptsMs: prompts,
+      agentIntervals: turnSpans,
+      period: FULL,
+    });
+    // 0 -> 26.733s before the first prompt, 29.963s -> 54.405s before the second.
+    expect(result).toEqual({ humanMs: 26_733 + (54_405 - 29_963), inactiveMs: 0 });
+  });
+});
