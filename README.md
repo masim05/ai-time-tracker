@@ -13,13 +13,9 @@ read into diagnostics.
 ### Install and build
 
 ```bash
-nvm use            # selects the Node version pinned in .nvmrc
 npm install
 npm run build      # optional: compile to dist/ for a production run
 ```
-
-`better-sqlite3` is a native addon: after switching Node versions, run
-`npm rebuild` before using the CLI.
 
 ### Run
 

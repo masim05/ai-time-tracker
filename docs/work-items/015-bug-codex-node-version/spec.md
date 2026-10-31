@@ -34,17 +34,14 @@ keeps the install-time and run-time Node versions aligned; CI uses `lts/*`.
 ## Expected behavior
 
 - The repository pins one supported Node major in `.nvmrc` (`24`, the active
-  LTS and the version `node_modules` builds against in CI and locally).
+  LTS and the version `node_modules` builds against locally).
 - `nvm use` in the repository selects that version, so `npm install` and
   `npm run cli` use the same ABI and Codex rows are reported.
-- CI's `Application checks` reads the Node version from `.nvmrc` so CI and
-  local runs stay on the same pin.
-- README documents the pinned version and the `npm rebuild` remedy after
-  switching Node versions.
 
 ## Clarification record
 
-- [REQ] Fix scope → pin the Node version in `.nvmrc`.
+- [REQ] Fix scope → only enforce Node 24 in `.nvmrc` (maintainer direction:
+  "you need just enforce node 24 in the nvmrc"); no CI or README changes.
 - [TECH] Exit code on native-module load failure → unchanged (exit 1, partial
   failure).
 - [REQ] Codex time accuracy observed under Node 24 (human `0m`, multi-day
@@ -54,4 +51,5 @@ keeps the install-time and run-time Node versions aligned; CI uses `lts/*`.
 
 - Changing `CodexReader` diagnostics or error classification.
 - Replacing `better-sqlite3` or adding `engines` enforcement.
+- CI workflow and README changes.
 - Codex time-accuracy observations.
