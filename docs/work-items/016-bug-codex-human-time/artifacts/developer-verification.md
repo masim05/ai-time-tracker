@@ -82,3 +82,60 @@ Whole-history notes (expected under the spec):
 
 `report -f 2026-10-28 -t 2026-10-31T07:00:00Z -a claude-cli` and
 `-a copilot-cli`: table and JSON output byte-identical on main and the branch.
+
+# Developer verification — 2026-11-01 (R8, imported threads)
+
+Follow-up to owner review on PR #18 (`report -f 2026-10-16 -a codex -t
+2026-10-31`: 13 rows, `subagents` always 0, human/agent-time 0 almost
+everywhere). Offline and read-only; only `records[].imported_thread_id` and
+`records[].imported_at` were read from the imports file, plus the structural
+rollout fields listed above. Session names other than ticket IDs are redacted.
+
+## Findings on live data
+
+- `thread_spawn_edges` has 0 rows, so `subagents = 0` is correct.
+- `external_agent_session_imports.json` has 50 records; 25 of the 30 threads
+  are imports. Every imported rollout's turn events lie between
+  `imported_at - 0.9 s` and `imported_at + 0.5 s`; the only later record in two
+  of them is a `thread_settings_applied` event (no turns). No imported thread
+  has post-import turns, so on live data all 25 are skipped.
+
+## Regression tests (fail before the fix)
+
+`CodexReader imported threads` and `CodexReader imports file access` in
+`codexReader.test.ts`, run against the `b0a97c8` reader:
+
+```text
+before fix: 38 tests, 10 failed (every new case except "imports file absent",
+            which asserts unchanged behaviour)
+after fix:  38 tests passed
+```
+
+## Full local validation
+
+```text
+npm run typecheck: passed
+npm test: 15 files passed, 220 tests passed
+npm run build: passed
+scripts/check-ai-flow-config.sh, tests/integration/check-ai-flow-config.sh,
+scripts/check-architecture.sh, scripts/check-specs.sh, scripts/check-dod.sh,
+scripts/check-pr.sh: passed
+```
+
+## E4 — `report -f 2026-10-16 -a codex -t 2026-10-31`
+
+| | `b0a97c8` | branch |
+| --- | --- | --- |
+| Codex rows | 13 (11 imported threads, 2 native) | 2 native |
+| native `codex-cli` thread (2026-10-22 08:08) | 0m / 0m, 0m | unchanged |
+| native `codex-app` `DW-2963` (2026-10-26 07:02) | human 1m, agent-time 3m, 7h39m | unchanged |
+| warnings | 49 | 25 |
+
+The 24 fewer warnings are the latest-only name warnings of skipped imported
+threads; one new warning reads `25 Codex thread(s) skipped: imported from
+another agent's session history, with no Codex turns after the import`.
+
+Native rows are identical in JSON for this window and for the whole history
+(`-f 2026-01-01 -t 2026-11-01`: 30 rows → the same 5 native rows).
+`claude-cli` and `copilot-cli` JSON for `-f 2026-10-16 -t 2026-10-31` is
+byte-identical on `b0a97c8` and the branch.

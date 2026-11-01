@@ -28,3 +28,16 @@ npm run cli -- report -f 2026-10-28 -a copilot-cli
 ```
 
 Expected: identical output on `main` and on the branch.
+
+## E4 — Imported threads are skipped (R8)
+
+```bash
+npm run cli -- report -f 2026-10-16 -a codex -t 2026-10-31
+npm run cli -- report -f 2026-10-16 -a codex -t 2026-10-31 --verbose
+```
+
+Expected: threads listed in `external_agent_session_imports.json` without
+post-import Codex turns produce no rows; one warning
+`N Codex thread(s) skipped: imported …` names the imports file; native Codex
+rows are identical to `b0a97c8` (JSON); `claude-cli` and `copilot-cli` JSON
+output for the same window is identical to `b0a97c8`.

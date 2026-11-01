@@ -42,12 +42,20 @@ interface RolloutActivity {
 
 const DEFAULT_IDLE_GAP_MS = 2 * 60 * 1000;
 
+/** Import replays are stamped within about a second of `imported_at`; turns later than this are real. */
+const IMPORT_REPLAY_TOLERANCE_MS = 60 * 1000;
+
+const IMPORTS_FILE = 'external_agent_session_imports.json';
+
 /**
  * Reads Codex CLI and Codex App sessions from the shared `~/.codex` backend:
  * `state_5.sqlite` (threads + spawn edges), per-thread rollout JSONL files
  * (turn-based agent activity and human prompts), `logs_2.sqlite` (thread
  * start/end activity, app detection, and fallback agent activity), and
  * `history.jsonl` (fallback human prompt timestamps).
+ *
+ * Imported threads (`external_agent_session_imports.json`) report only
+ * post-import turns, or are skipped with a counted warning.
  *
  * All database handles are opened read-only.
  */
@@ -123,6 +131,8 @@ export class CodexReader implements ISessionReader {
 
     const logInfo = this.readLogInfo(diagnostics);
     const promptsByThread = this.readPrompts(diagnostics);
+    const importedAt = this.readImports(diagnostics);
+    let skippedImported = 0;
 
     for (const thread of threads) {
       if (thread.created_at_ms === null) {
@@ -139,6 +149,21 @@ export class CodexReader implements ISessionReader {
       const interfaceId: InterfaceId = logInfo.appThreads.has(thread.id)
         ? 'codex-app'
         : 'codex-cli';
+
+      if (importedAt.has(thread.id)) {
+        const invocation = this.readImportedThread(
+          thread,
+          importedAt.get(thread.id) ?? null,
+          { rootId, parentId, interfaceId },
+          diagnostics,
+        );
+        if (invocation) {
+          invocations.push(invocation);
+        } else {
+          skippedImported++;
+        }
+        continue;
+      }
 
       const logTimestamps = logInfo.timestampsByThread.get(thread.id) ?? [];
       const logSpans: WorkInterval[] =
@@ -169,32 +194,123 @@ export class CodexReader implements ISessionReader {
             ? rollout.prompts
             : promptsByThread.get(thread.id) ?? [];
 
-      const nameEvents = resolveCodexNameEvents(
-        thread,
-        rootId,
-        interfaceId,
-        start,
-        diagnostics,
+      invocations.push(
+        buildInvocation(
+          thread,
+          { rootId, parentId, interfaceId },
+          { prompts, spans, start, end },
+          diagnostics,
+        ),
       );
-      invocations.push({
+    }
+
+    if (skippedImported > 0) {
+      diagnostics.push({
         provider: 'codex',
-        interfaceId,
-        launchRootId: rootId,
-        invocationId: thread.id,
-        parentId,
-        cwd: thread.cwd ?? undefined,
-        isRoot: thread.id === rootId,
-        promptsMs: prompts,
-        agentSpans: spans,
-        sessionNameEvents: thread.id === rootId ? nameEvents : undefined,
-        hasApproximateNameHistory:
-          thread.id === rootId ? nameEvents.length > 0 : undefined,
-        startMs: start,
-        endMs: end,
+        filePath: path.join(this.baseDir, IMPORTS_FILE),
+        reason:
+          `${skippedImported} Codex thread(s) skipped: imported from another agent's ` +
+          'session history, with no Codex turns after the import',
+        severity: 'warning',
       });
     }
 
     return { invocations, diagnostics };
+  }
+
+  /**
+   * Builds an imported thread's invocation from its post-import rollout turns
+   * only, or returns `undefined` when there are none and the thread is skipped.
+   */
+  private readImportedThread(
+    thread: ThreadRow,
+    importedAtMs: number | null,
+    topology: ThreadTopology,
+    diagnostics: Diagnostic[],
+  ): NormalizedInvocation | undefined {
+    if (importedAtMs === null) {
+      return undefined;
+    }
+    const rollout = this.readRollout(
+      thread,
+      diagnostics,
+      importedAtMs + IMPORT_REPLAY_TOLERANCE_MS,
+    );
+    if (!rollout || rollout.spans.length === 0) {
+      return undefined;
+    }
+    const spans = rollout.spans;
+    const prompts = thread.thread_source === 'subagent' ? [] : rollout.prompts;
+    const start = Math.min(...spans.map((s) => s.startMs), ...prompts);
+    const end = Math.max(...spans.map((s) => s.endMs));
+    return buildInvocation(thread, topology, { prompts, spans, start, end }, diagnostics);
+  }
+
+  /**
+   * Maps imported thread ids to their import time in ms (`null` when unknown).
+   * Only `imported_thread_id` and `imported_at` are read from each record.
+   */
+  private readImports(diagnostics: Diagnostic[]): Map<string, number | null> {
+    const importedAt = new Map<string, number | null>();
+    const importsPath = path.join(this.baseDir, IMPORTS_FILE);
+    if (!fs.existsSync(importsPath)) {
+      return importedAt;
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(fs.readFileSync(importsPath, 'utf8'));
+    } catch (error) {
+      diagnostics.push({
+        provider: 'codex',
+        filePath: importsPath,
+        reason:
+          error instanceof SyntaxError
+            ? 'Codex session imports file is malformed; imported threads cannot be identified'
+            : 'Codex session imports file could not be read; imported threads cannot be identified',
+        severity: 'warning',
+      });
+      return importedAt;
+    }
+    const records =
+      typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>).records
+        : undefined;
+    if (!Array.isArray(records)) {
+      diagnostics.push({
+        provider: 'codex',
+        filePath: importsPath,
+        reason: 'Codex session imports file is malformed; imported threads cannot be identified',
+        severity: 'warning',
+      });
+      return importedAt;
+    }
+    let ignored = 0;
+    for (const record of records) {
+      const fields =
+        typeof record === 'object' && record !== null
+          ? (record as Record<string, unknown>)
+          : undefined;
+      const id = fields?.imported_thread_id;
+      if (typeof id !== 'string' || id === '') {
+        ignored++;
+        continue;
+      }
+      const at = fields?.imported_at;
+      const ms = typeof at === 'number' && Number.isFinite(at) ? at * 1000 : null;
+      // Re-imports of the same thread: the latest import time bounds the replay.
+      const previous = importedAt.get(id);
+      const unknown = ms === null || previous === null;
+      importedAt.set(id, unknown ? null : Math.max(previous ?? ms, ms));
+    }
+    if (ignored > 0) {
+      diagnostics.push({
+        provider: 'codex',
+        filePath: importsPath,
+        reason: `${ignored} Codex session import record(s) ignored: no imported thread id`,
+        severity: 'warning',
+      });
+    }
+    return importedAt;
   }
 
   private readLogInfo(diagnostics: Diagnostic[]): {
@@ -264,11 +380,13 @@ export class CodexReader implements ISessionReader {
    * Privacy: only `timestamp`, `type`, `payload.type`, and
    * `payload.turn_attribution.turn_trigger` are inspected; no other record
    * content is retained or emitted in diagnostics. Returns `undefined` when
-   * the thread has no rollout or the file cannot be read.
+   * the thread has no rollout or the file cannot be read. Turn events at or
+   * before `notAfterMs`, when given, are ignored.
    */
   private readRollout(
     thread: ThreadRow,
     diagnostics: Diagnostic[],
+    notAfterMs?: number,
   ): RolloutActivity | undefined {
     if (typeof thread.rollout_path !== 'string' || thread.rollout_path.trim() === '') {
       return undefined;
@@ -355,6 +473,9 @@ export class CodexReader implements ISessionReader {
         });
         continue;
       }
+      if (notAfterMs !== undefined && ms <= notAfterMs) {
+        continue;
+      }
       if (eventType === 'task_started') {
         if (open) {
           // A new turn implicitly ends a turn that never completed.
@@ -432,6 +553,43 @@ export class CodexReader implements ISessionReader {
     }
     return byThread;
   }
+}
+
+interface ThreadTopology {
+  readonly rootId: string;
+  readonly parentId: string | undefined;
+  readonly interfaceId: InterfaceId;
+}
+
+function buildInvocation(
+  thread: ThreadRow,
+  { rootId, parentId, interfaceId }: ThreadTopology,
+  activity: { prompts: number[]; spans: WorkInterval[]; start: number; end: number },
+  diagnostics: Diagnostic[],
+): NormalizedInvocation {
+  const nameEvents = resolveCodexNameEvents(
+    thread,
+    rootId,
+    interfaceId,
+    activity.start,
+    diagnostics,
+  );
+  return {
+    provider: 'codex',
+    interfaceId,
+    launchRootId: rootId,
+    invocationId: thread.id,
+    parentId,
+    cwd: thread.cwd ?? undefined,
+    isRoot: thread.id === rootId,
+    promptsMs: activity.prompts,
+    agentSpans: activity.spans,
+    sessionNameEvents: thread.id === rootId ? nameEvents : undefined,
+    hasApproximateNameHistory:
+      thread.id === rootId ? nameEvents.length > 0 : undefined,
+    startMs: activity.start,
+    endMs: activity.end,
+  };
 }
 
 /** The only rollout record fields the reader is allowed to inspect. */

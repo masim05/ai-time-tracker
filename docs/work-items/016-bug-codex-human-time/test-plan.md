@@ -11,6 +11,7 @@
 | R5 privacy | Diagnostic assertions (no fixture content in output) |
 | R6 read-only / no deps | Review + `package.json` diff |
 | R7 ADR updated | Review |
+| R8 imported threads | `CodexReader imported threads` unit tests + E4 |
 | End-to-end human time > 0 | E1 |
 
 ## Required regression test
@@ -34,6 +35,22 @@ two turn spans, and `TimeCalculator.humanActivity` on the reader output returns
 - older schema without `rollout_path` column → existing behavior;
 - sub-agent threads still have no prompts;
 - diagnostics never contain fixture prompt text.
+
+### Imported threads (R8, fail on `b0a97c8`)
+
+- replay-only imported threads are skipped; one counted warning with the
+  imports file path; no source path/title in diagnostics; native thread
+  unchanged;
+- imported thread with post-import turns reports only those turns, with
+  start/end from them;
+- replay tolerance boundary: event at `imported_at + 60 s` is replay, 1 ms
+  later is post-import;
+- record without numeric `imported_at` → thread skipped;
+- sub-agent of a skipped import keeps the imported launch root;
+- malformed imports file (not JSON, `records` not an array, top level not an
+  object) and unreadable file → threads as before + one content-free warning;
+- records without a thread id → ignored with a counted warning;
+- absent imports file → threads as before, no warning (passes before and after).
 
 ## Commands
 

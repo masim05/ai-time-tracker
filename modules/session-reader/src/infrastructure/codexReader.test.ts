@@ -314,6 +314,8 @@ interface FixtureOptions {
   logs?: Record<string, number[]>;
   history?: { session_id: string; ts: number; text?: string }[];
   withRolloutColumn?: boolean;
+  /** Contents of `external_agent_session_imports.json`: an object or raw text. */
+  imports?: unknown;
 }
 
 const fixtureDirs: string[] = [];
@@ -438,6 +440,14 @@ function buildCodexDir(options: FixtureOptions): string {
   }
   logs.close();
 
+  if (options.imports !== undefined) {
+    fs.writeFileSync(
+      path.join(dir, 'external_agent_session_imports.json'),
+      typeof options.imports === 'string'
+        ? options.imports
+        : JSON.stringify(options.imports),
+    );
+  }
   if (options.history) {
     fs.writeFileSync(
       path.join(dir, 'history.jsonl'),
@@ -744,5 +754,293 @@ describe('CodexReader rollout-based activity', () => {
     expect(invocation.agentSpans).toEqual([
       { startMs: T0 + 3 * SEC, endMs: T0 + 10 * SEC },
     ]);
+  });
+});
+
+// Import time and replay modelled on Codex App imports of external transcripts.
+const IMPORTED_AT_S = Math.floor(T0 / 1000) + 3600;
+const IMPORTED_AT_MS = IMPORTED_AT_S * 1000;
+
+function importRecord(threadId: string, importedAt: unknown = IMPORTED_AT_S) {
+  return {
+    source_path: '/home/dev/.claude/projects/x/SECRET-SOURCE-PATH.jsonl',
+    content_sha256: 'abc',
+    imported_thread_id: threadId,
+    imported_at: importedAt,
+    source_modified_at: IMPORTED_AT_S - 10,
+    title: 'SECRET-IMPORTED-TITLE',
+  };
+}
+
+/** Replayed history: every turn event stamped within milliseconds of the import. */
+function replay(baseMs: number): RolloutRecord[] {
+  return [
+    started(baseMs),
+    userMessage(baseMs + 1),
+    completed(baseMs + 2),
+    started(baseMs + 3),
+    userMessage(baseMs + 4),
+    completed(baseMs + 5),
+  ];
+}
+
+const nativeThread: FixtureThread = {
+  id: 'T-native',
+  createdAtMs: T0,
+  updatedAtMs: T0 + 60 * SEC,
+  rollout: [
+    started(T0 + 1 * SEC, 'user'),
+    completed(T0 + 3 * SEC),
+    started(T0 + 20 * SEC, 'user'),
+    completed(T0 + 25 * SEC),
+  ],
+};
+
+function expectNativeUnchanged(invocations: readonly NormalizedInvocation[]) {
+  const native = invocations.find((i) => i.invocationId === 'T-native');
+  expect(native?.agentSpans).toEqual([
+    { startMs: T0 + 1 * SEC, endMs: T0 + 3 * SEC },
+    { startMs: T0 + 20 * SEC, endMs: T0 + 25 * SEC },
+  ]);
+  expect(native?.promptsMs).toEqual([T0 + 1 * SEC, T0 + 20 * SEC]);
+  expect(native?.startMs).toBe(T0);
+  expect(native?.endMs).toBe(T0 + 60 * SEC);
+}
+
+describe('CodexReader imported threads', () => {
+  it('skips an imported thread that has only its import replay, with a counted content-free warning', () => {
+    const dir = buildCodexDir({
+      threads: [
+        nativeThread,
+        {
+          id: 'T-imported',
+          // Imported threads keep the external session's original creation time.
+          createdAtMs: T0 - 86_400 * SEC,
+          updatedAtMs: IMPORTED_AT_MS + 5 * SEC,
+          rollout: [
+            ...replay(IMPORTED_AT_MS - 400),
+            // App metadata written later is not a turn.
+            other(IMPORTED_AT_MS + 86_400 * SEC, 'event_msg'),
+          ],
+        },
+        {
+          id: 'T-imported-2',
+          createdAtMs: T0 - 3 * 86_400 * SEC,
+          updatedAtMs: T0 - 2 * 86_400 * SEC,
+          rollout: replay(IMPORTED_AT_MS + 300),
+        },
+      ],
+      logs: { 'T-imported': [IMPORTED_AT_MS, IMPORTED_AT_MS + 86_400 * SEC] },
+      history: [{ session_id: 'T-imported', ts: IMPORTED_AT_S + 7200 }],
+      imports: {
+        records: [importRecord('T-imported'), importRecord('T-imported-2')],
+        detected_connector_records: [],
+      },
+    });
+    const { invocations, diagnostics } = new CodexReader({ baseDir: dir }).read();
+    expect(invocations.map((i) => i.invocationId)).toEqual(['T-native']);
+    expectNativeUnchanged(invocations);
+    const skipped = diagnostics.filter((d) => d.reason.includes('imported'));
+    expect(skipped).toHaveLength(1);
+    expect(skipped[0]?.severity).toBe('warning');
+    expect(skipped[0]?.reason).toMatch(/^2 Codex thread\(s\) skipped: /);
+    expect(skipped[0]?.filePath).toBe(
+      path.join(dir, 'external_agent_session_imports.json'),
+    );
+    expect(JSON.stringify(diagnostics)).not.toContain('SECRET');
+  });
+
+  it('reports only post-import turns of an imported thread, with start and end taken from them', () => {
+    const dir = buildCodexDir({
+      threads: [
+        nativeThread,
+        {
+          id: 'T-continued',
+          createdAtMs: T0 - 86_400 * SEC,
+          updatedAtMs: IMPORTED_AT_MS + 7200 * SEC,
+          rollout: [
+            ...replay(IMPORTED_AT_MS - 400),
+            started(IMPORTED_AT_MS + 3600 * SEC, 'user'),
+            completed(IMPORTED_AT_MS + 3610 * SEC),
+            started(IMPORTED_AT_MS + 3700 * SEC, 'user'),
+            completed(IMPORTED_AT_MS + 3730 * SEC),
+          ],
+        },
+      ],
+      logs: { 'T-continued': [T0 - 86_400 * SEC, IMPORTED_AT_MS + 7200 * SEC] },
+      imports: { records: [importRecord('T-continued')] },
+    });
+    const { invocations, diagnostics } = new CodexReader({ baseDir: dir }).read();
+    expectNativeUnchanged(invocations);
+    const continued = invocations.find((i) => i.invocationId === 'T-continued');
+    expect(continued?.agentSpans).toEqual([
+      { startMs: IMPORTED_AT_MS + 3600 * SEC, endMs: IMPORTED_AT_MS + 3610 * SEC },
+      { startMs: IMPORTED_AT_MS + 3700 * SEC, endMs: IMPORTED_AT_MS + 3730 * SEC },
+    ]);
+    expect(continued?.promptsMs).toEqual([
+      IMPORTED_AT_MS + 3600 * SEC,
+      IMPORTED_AT_MS + 3700 * SEC,
+    ]);
+    expect(continued?.startMs).toBe(IMPORTED_AT_MS + 3600 * SEC);
+    expect(continued?.endMs).toBe(IMPORTED_AT_MS + 3730 * SEC);
+    expect(diagnostics.some((d) => d.reason.includes('skipped'))).toBe(false);
+  });
+
+  it('treats turn events up to the replay tolerance after imported_at as replay', () => {
+    const dir = buildCodexDir({
+      threads: [
+        {
+          id: 'T-boundary',
+          createdAtMs: T0,
+          updatedAtMs: IMPORTED_AT_MS + 120 * SEC,
+          rollout: [
+            started(IMPORTED_AT_MS + 60 * SEC, 'user'),
+            completed(IMPORTED_AT_MS + 60 * SEC + 1),
+            started(IMPORTED_AT_MS + 60 * SEC + 1, 'user'),
+            completed(IMPORTED_AT_MS + 70 * SEC),
+          ],
+        },
+      ],
+      imports: { records: [importRecord('T-boundary')] },
+    });
+    const { invocation } = readThread(dir, 'T-boundary');
+    expect(invocation.agentSpans).toEqual([
+      { startMs: IMPORTED_AT_MS + 60 * SEC + 1, endMs: IMPORTED_AT_MS + 70 * SEC },
+    ]);
+    expect(invocation.promptsMs).toEqual([IMPORTED_AT_MS + 60 * SEC + 1]);
+  });
+
+  it('skips an imported thread whose record has no usable imported_at', () => {
+    const dir = buildCodexDir({
+      threads: [
+        {
+          id: 'T-no-time',
+          createdAtMs: T0,
+          updatedAtMs: IMPORTED_AT_MS + 7200 * SEC,
+          rollout: [
+            started(IMPORTED_AT_MS + 3600 * SEC, 'user'),
+            completed(IMPORTED_AT_MS + 3610 * SEC),
+          ],
+        },
+      ],
+      imports: { records: [importRecord('T-no-time', 'yesterday')] },
+    });
+    const { invocations, diagnostics } = new CodexReader({ baseDir: dir }).read();
+    expect(invocations).toHaveLength(0);
+    expect(diagnostics.some((d) => /^1 Codex thread\(s\) skipped: /.test(d.reason))).toBe(true);
+  });
+
+  it('keeps sub-agent threads of a skipped import under the imported launch id', () => {
+    const dir = buildCodexDir({
+      threads: [
+        {
+          id: 'T-imported-parent',
+          createdAtMs: T0 - 86_400 * SEC,
+          updatedAtMs: IMPORTED_AT_MS,
+          rollout: replay(IMPORTED_AT_MS),
+        },
+        {
+          id: 'T-native-child',
+          createdAtMs: IMPORTED_AT_MS + 600 * SEC,
+          updatedAtMs: IMPORTED_AT_MS + 700 * SEC,
+          source: 'subagent',
+          rollout: [
+            started(IMPORTED_AT_MS + 610 * SEC),
+            completed(IMPORTED_AT_MS + 650 * SEC),
+          ],
+        },
+      ],
+      edges: [['T-imported-parent', 'T-native-child']],
+      imports: { records: [importRecord('T-imported-parent')] },
+    });
+    const { invocations } = new CodexReader({ baseDir: dir }).read();
+    expect(invocations.map((i) => i.invocationId)).toEqual(['T-native-child']);
+    expect(invocations[0]?.launchRootId).toBe('T-imported-parent');
+    expect(invocations[0]?.agentSpans).toEqual([
+      { startMs: IMPORTED_AT_MS + 610 * SEC, endMs: IMPORTED_AT_MS + 650 * SEC },
+    ]);
+  });
+
+  it('reports every thread as before, without warnings, when the imports file is absent', () => {
+    const dir = buildCodexDir({
+      threads: [
+        nativeThread,
+        {
+          id: 'T-replay-shaped',
+          createdAtMs: T0,
+          updatedAtMs: IMPORTED_AT_MS,
+          rollout: replay(IMPORTED_AT_MS),
+        },
+      ],
+    });
+    const { invocations, diagnostics } = new CodexReader({ baseDir: dir }).read();
+    expectNativeUnchanged(invocations);
+    const replayed = invocations.find((i) => i.invocationId === 'T-replay-shaped');
+    expect(replayed?.agentSpans).toHaveLength(2);
+    expect(diagnostics).toEqual([]);
+  });
+
+  it.each([
+    ['not JSON', '{"records": [ SECRET-BROKEN'],
+    ['records not an array', JSON.stringify({ records: 'SECRET-NOT-A-LIST' })],
+    ['top level not an object', JSON.stringify(['SECRET-ARRAY'])],
+  ])('reports threads as before with a content-free warning when the imports file is malformed (%s)', (_label, text) => {
+    const dir = buildCodexDir({
+      threads: [
+        nativeThread,
+        {
+          id: 'T-replay-shaped',
+          createdAtMs: T0,
+          updatedAtMs: IMPORTED_AT_MS,
+          rollout: replay(IMPORTED_AT_MS),
+        },
+      ],
+      imports: text,
+    });
+    const { invocations, diagnostics } = new CodexReader({ baseDir: dir }).read();
+    expectNativeUnchanged(invocations);
+    expect(invocations.map((i) => i.invocationId).sort()).toEqual([
+      'T-native',
+      'T-replay-shaped',
+    ]);
+    expect(diagnostics).toEqual([
+      {
+        provider: 'codex',
+        filePath: path.join(dir, 'external_agent_session_imports.json'),
+        reason: 'Codex session imports file is malformed; imported threads cannot be identified',
+        severity: 'warning',
+      },
+    ]);
+  });
+});
+
+describe('CodexReader imports file access', () => {
+  it('reports threads as before with a content-free warning when the imports file is unreadable', () => {
+    const dir = buildCodexDir({ threads: [nativeThread] });
+    // A directory in place of the file makes the read fail.
+    fs.mkdirSync(path.join(dir, 'external_agent_session_imports.json'));
+    const { invocations, diagnostics } = new CodexReader({ baseDir: dir }).read();
+    expectNativeUnchanged(invocations);
+    expect(diagnostics).toEqual([
+      {
+        provider: 'codex',
+        filePath: path.join(dir, 'external_agent_session_imports.json'),
+        reason: 'Codex session imports file could not be read; imported threads cannot be identified',
+        severity: 'warning',
+      },
+    ]);
+  });
+
+  it('ignores import records without a thread id with a counted warning', () => {
+    const dir = buildCodexDir({
+      threads: [nativeThread],
+      imports: { records: [{ imported_at: IMPORTED_AT_S, title: 'SECRET-TITLE' }, 'SECRET-STRING'] },
+    });
+    const { invocations, diagnostics } = new CodexReader({ baseDir: dir }).read();
+    expectNativeUnchanged(invocations);
+    expect(diagnostics.map((d) => d.reason)).toEqual([
+      '2 Codex session import record(s) ignored: no imported thread id',
+    ]);
+    expect(JSON.stringify(diagnostics)).not.toContain('SECRET');
   });
 });

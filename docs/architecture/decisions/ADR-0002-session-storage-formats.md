@@ -82,6 +82,21 @@ When the rollout yields no prompts, prompts come from `history.jsonl`. A
 missing or unreadable rollout file and each malformed rollout line produce
 content-free warning diagnostics.
 
+### Codex: threads imported from other agents
+
+The Codex App can import another agent's transcripts (for example Claude Code)
+as Codex threads; `~/.codex/external_agent_session_imports.json` lists them as
+`records[]` with `imported_thread_id` and `imported_at` (Unix seconds). The
+imported rollout replays the whole external history with every turn event
+stamped within about a second of the import, and that work is already reported
+by the source provider. The reader therefore ignores turn events at or before
+`imported_at * 1000 + 60 000` ms (latest import wins on re-import). An
+imported thread with later turns reports only those turns, with start and end
+taken from them rather than from thread metadata or logs; otherwise it is
+skipped and counted in one warning diagnostic. Only `imported_thread_id` and
+`imported_at` are read from the file. An absent file means no imports; an
+unreadable or malformed file yields one content-free warning and no imports.
+
 ### Codex App vs Codex CLI: detect via app-server log targets
 
 `codex-app` and `codex-cli` share the same on-disk stores. A thread is
@@ -107,6 +122,8 @@ optional `title` column continue to use `name` only.
 - Codex agent-time follows rollout turn boundaries; it falls back to an
   approximation derived from log activity (with the clustering gap threshold as
   the main tuning parameter) only when rollout turns are unavailable.
+- Imported Codex threads are visible only through their post-import turns; a
+  real Codex turn within 60 s of an import would be treated as replay.
 - Codex historical label changes cannot be reconstructed from the supported
   state database; only the latest explicit name or generated title is available.
 - All access is read-only and offline, satisfying the security constraints of

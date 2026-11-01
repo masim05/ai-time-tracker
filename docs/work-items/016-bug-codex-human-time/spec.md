@@ -72,9 +72,13 @@ per thread. Relevant record shapes (only these fields may be read):
 
 ## Clarified decisions
 
-- [REQ] Threads imported by Codex App from Claude Code transcripts
-  (`external_agent_session_imports.json`) are kept as-is: no special
-  exclusion or filtering in this work item.
+- [REQ] ~~Threads imported by Codex App from Claude Code transcripts
+  (`external_agent_session_imports.json`) are kept as-is.~~ Superseded after
+  owner review on PR #18: imported threads are skipped from their import replay
+  (R8). Their rollouts replay the whole external history within about a second
+  of the import, so they reported day-long durations with ~0 agent-time on the
+  branch (and log-clustered agent-time on `main`), and that work is already
+  counted by the source provider (for example `claude-cli`).
 - [TECH] Agent spans come from rollout turns: each `task_started` up to the
   next `task_complete`/`turn_aborted`. Fall back to the existing
   `logs_2.sqlite` clustering only when the rollout is missing, unreadable, or
@@ -102,8 +106,36 @@ per thread. Relevant record shapes (only these fields may be read):
    tool content is stored, logged, or emitted in diagnostics.
 6. R6 — Read-only access; no new dependencies.
 7. R7 — ADR-0002 is updated to describe rollout-based activity and prompts.
+8. R8 — Imported threads. A thread whose id is an `imported_thread_id` in
+   `~/.codex/external_agent_session_imports.json` is not reported from its
+   import replay:
+   - **Post-import rule:** a rollout turn event counts only when its timestamp
+     is later than `imported_at * 1000 + 60 000` ms (`imported_at` is in
+     seconds; replay events are stamped within about a second of it). Events at
+     or before that cutoff are replay and ignored. When a thread is imported
+     more than once, the latest `imported_at` applies.
+   - With at least one post-import turn, the thread reports only those turns:
+     agent spans and prompts per R1/R2 from post-import events, `start` = the
+     first post-import turn start, end = the last post-import turn end. Thread
+     `created_at`/`updated_at`, log rows, and `history.jsonl` are not used.
+   - Without post-import turns (or when the record has no numeric
+     `imported_at`), the thread is skipped. Skipped threads are reported as one
+     counted warning (`N Codex thread(s) skipped: …`, with the imports file
+     path), never silently dropped.
+   - Only `records[].imported_thread_id` and `records[].imported_at` are read;
+     `source_path`, titles, and source transcripts are never read or emitted.
+     Records without a thread id are ignored with a counted warning.
+   - Absent imports file: no imports known, no warning. Unreadable or
+     malformed file (not JSON, no `records` array): no imports known plus one
+     content-free warning.
+   - Sub-agent threads of a skipped imported thread are read as usual (unless
+     they are imported themselves) and keep the imported thread as their launch
+     root, so they form a launch row without the root's activity — the existing
+     grouping for a launch whose root invocation is absent.
+   - Classification, names, native threads, and other providers are unchanged.
 
 ## Out of scope
 
-- Excluding or relabelling imported threads.
+- Relabelling imported threads or attributing their history to the source
+  provider.
 - Changes to reporter thresholds or other providers.
