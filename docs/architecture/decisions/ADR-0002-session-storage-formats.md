@@ -90,9 +90,11 @@ as Codex threads; `~/.codex/external_agent_session_imports.json` lists them as
 imported rollout replays the whole external history with every turn event
 stamped within about a second of the import, and that work is already reported
 by the source provider. The reader therefore ignores turn events at or before
-`imported_at * 1000 + 60 000` ms (latest import wins on re-import). An
+`imported_at * 1000 + 60 000` ms (latest import wins on re-import; a record
+without a numeric `imported_at` makes the import time unknown). An
 imported thread with later turns reports only those turns, with start and end
-taken from them rather than from thread metadata or logs; otherwise it is
+taken from them rather than from thread metadata or logs; otherwise, or when
+its import time is unknown, it is
 skipped and counted in one warning diagnostic. Only `imported_thread_id` and
 `imported_at` are read from the file. An absent file means no imports; an
 unreadable or malformed file yields one content-free warning and no imports.

@@ -113,7 +113,9 @@ per thread. Relevant record shapes (only these fields may be read):
      is later than `imported_at * 1000 + 60 000` ms (`imported_at` is in
      seconds; replay events are stamped within about a second of it). Events at
      or before that cutoff are replay and ignored. When a thread is imported
-     more than once, the latest `imported_at` applies.
+     more than once, the latest `imported_at` applies, whatever the record
+     order; if any of its records has no numeric `imported_at`, the import
+     time is unknown and the thread is skipped (as below).
    - With at least one post-import turn, the thread reports only those turns:
      agent spans and prompts per R1/R2 from post-import events, `start` = the
      first post-import turn start, end = the last post-import turn end. Thread

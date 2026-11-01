@@ -139,3 +139,19 @@ Native rows are identical in JSON for this window and for the whole history
 (`-f 2026-01-01 -t 2026-11-01`: 30 rows → the same 5 native rows).
 `claude-cli` and `copilot-cli` JSON for `-f 2026-10-16 -t 2026-10-31` is
 byte-identical on `b0a97c8` and the branch.
+
+## Re-imported threads (review iteration 3)
+
+Four new cases pin the R8 re-import rule: the latest `imported_at` applies in
+either record order, and a thread with one numeric and one non-numeric
+`imported_at` record is skipped in either order. Mutation probes on the reader
+(each reverted afterwards), `codexReader.test.ts` with 42 tests:
+
+```text
+Math.max(previous ?? ms, ms) -> (previous ?? ms)           1 failed
+Math.max(previous ?? ms, ms) -> Math.min(previous ?? ms, ms) 2 failed
+unknown = ms === null || previous === null -> ms === null   1 failed
+unmodified reader                                           42 passed
+```
+
+Full suite: 15 files, 224 tests passed.

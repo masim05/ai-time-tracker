@@ -930,6 +930,55 @@ describe('CodexReader imported threads', () => {
     expect(diagnostics.some((d) => /^1 Codex thread\(s\) skipped: /.test(d.reason))).toBe(true);
   });
 
+  const LATER_IMPORT_S = IMPORTED_AT_S + 7200;
+
+  function reimportedThread(): FixtureThread {
+    return {
+      id: 'T-reimported',
+      createdAtMs: T0,
+      updatedAtMs: IMPORTED_AT_MS + 10_000 * SEC,
+      rollout: [
+        // After the first import, but within the second import's replay window.
+        started(IMPORTED_AT_MS + 3600 * SEC, 'user'),
+        completed(IMPORTED_AT_MS + 3610 * SEC),
+        started(LATER_IMPORT_S * 1000 + 1800 * SEC, 'user'),
+        completed(LATER_IMPORT_S * 1000 + 1830 * SEC),
+      ],
+    };
+  }
+
+  it.each([
+    ['earlier record first', [IMPORTED_AT_S, LATER_IMPORT_S]],
+    ['later record first', [LATER_IMPORT_S, IMPORTED_AT_S]],
+  ])('applies the latest imported_at when a thread was imported more than once (%s)', (_label, times) => {
+    const dir = buildCodexDir({
+      threads: [reimportedThread()],
+      imports: { records: times.map((t) => importRecord('T-reimported', t)) },
+    });
+    const { invocation } = readThread(dir, 'T-reimported');
+    expect(invocation.agentSpans).toEqual([
+      {
+        startMs: LATER_IMPORT_S * 1000 + 1800 * SEC,
+        endMs: LATER_IMPORT_S * 1000 + 1830 * SEC,
+      },
+    ]);
+    expect(invocation.promptsMs).toEqual([LATER_IMPORT_S * 1000 + 1800 * SEC]);
+    expect(invocation.startMs).toBe(LATER_IMPORT_S * 1000 + 1800 * SEC);
+  });
+
+  it.each([
+    ['numeric record first', [IMPORTED_AT_S, 'unknown']],
+    ['non-numeric record first', ['unknown', IMPORTED_AT_S]],
+  ])('skips a re-imported thread when any of its records has no numeric imported_at (%s)', (_label, times) => {
+    const dir = buildCodexDir({
+      threads: [reimportedThread()],
+      imports: { records: times.map((t) => importRecord('T-reimported', t)) },
+    });
+    const { invocations, diagnostics } = new CodexReader({ baseDir: dir }).read();
+    expect(invocations).toHaveLength(0);
+    expect(diagnostics.some((d) => /^1 Codex thread\(s\) skipped: /.test(d.reason))).toBe(true);
+  });
+
   it('keeps sub-agent threads of a skipped import under the imported launch id', () => {
     const dir = buildCodexDir({
       threads: [
