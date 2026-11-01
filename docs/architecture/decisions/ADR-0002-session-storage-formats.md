@@ -40,20 +40,64 @@ short recency window (`ACTIVE_RECENCY_MS`, 10 minutes). Stale lock files left
 behind by interrupted sessions would otherwise inflate `elapsed` to days; the
 recency guard bounds that risk.
 
-### Codex: `state_5.sqlite` for topology and cwd, `logs_2.sqlite` for activity
+### Codex: `state_5.sqlite` for topology and cwd, rollouts for turns, `logs_2.sqlite` for extent
 
 Codex thread topology (`threads`, `thread_spawn_edges`) and per-thread `cwd`
-come from `~/.codex/state_5.sqlite`. Per-thread activity timestamps come from
-the `logs` table in `~/.codex/logs_2.sqlite`. User prompt timestamps come from
-`~/.codex/history.jsonl` (`session_id` maps to a thread id, `ts` in seconds).
+come from `~/.codex/state_5.sqlite`. Each thread's `threads.rollout_path`
+points at a rollout JSONL transcript that supplies turn-based agent activity
+and human prompts. Per-thread log timestamps from the `logs` table in
+`~/.codex/logs_2.sqlite` still define thread start/end (together with
+`threads.created_at_ms`/`updated_at_ms`) and app detection.
+`~/.codex/history.jsonl` (`session_id` maps to a thread id, `ts` in seconds)
+is a fallback prompt source.
 
-### Codex: agent-time via log-timestamp clustering (thread_goals is empty)
+### Codex: agent-time and prompts from rollout turns
+
+Codex (especially the App server) writes `logs` rows continuously while a
+thread is open, including while waiting for the user, so log activity cannot
+separate agent work from human idle time. Agent spans are therefore derived
+from rollout turn records: each `event_msg` `task_started` up to the next
+`task_complete` or `turn_aborted`. An unterminated final turn ends at the last
+record timestamp, or at `threads.updated_at_ms` when later records carry no
+timestamp.
+
+Prompts are the timestamps of `task_started` events whose
+`payload.turn_attribution.turn_trigger` is `"user"`. For older rollouts whose
+turns carry no `turn_attribution`, the `user_message` event inside a turn is
+the prompt. Sub-agent threads report no prompts.
+
+Only `timestamp`, `type`, `payload.type`, and
+`payload.turn_attribution.turn_trigger` are read from rollout records; no
+prompt, response, or tool content is retained or emitted in diagnostics.
+
+### Codex: fallbacks when rollout data is unavailable
 
 `~/.codex/goals_1.sqlite`'s `thread_goals` table (which could provide
-`time_used_seconds`) is empty in practice, so it cannot be used. Instead,
-agent-time per thread is approximated by **clustering** that thread's `logs`
+`time_used_seconds`) is empty in practice, so it cannot be used. When a thread
+has no `rollout_path` (including older schemas without the column), its
+rollout file is missing or unreadable, or the rollout contains no turn
+records, agent-time is approximated by **clustering** that thread's `logs`
 timestamps into active spans, splitting on gaps larger than a fixed threshold.
-This is a deliberate approximation and is documented as such.
+When the rollout yields no prompts, prompts come from `history.jsonl`. A
+missing or unreadable rollout file and each malformed rollout line produce
+content-free warning diagnostics.
+
+### Codex: threads imported from other agents
+
+The Codex App can import another agent's transcripts (for example Claude Code)
+as Codex threads; `~/.codex/external_agent_session_imports.json` lists them as
+`records[]` with `imported_thread_id` and `imported_at` (Unix seconds). The
+imported rollout replays the whole external history with every turn event
+stamped within about a second of the import, and that work is already reported
+by the source provider. The reader therefore ignores turn events at or before
+`imported_at * 1000 + 60 000` ms (latest import wins on re-import; a record
+without a numeric `imported_at` makes the import time unknown). An
+imported thread with later turns reports only those turns, with start and end
+taken from them rather than from thread metadata or logs; otherwise, or when
+its import time is unknown, it is
+skipped and counted in one warning diagnostic. Only `imported_thread_id` and
+`imported_at` are read from the file. An absent file means no imports; an
+unreadable or malformed file yields one content-free warning and no imports.
 
 ### Codex App vs Codex CLI: detect via app-server log targets
 
@@ -77,9 +121,11 @@ optional `title` column continue to use `name` only.
 - The reader depends on undocumented provider formats and may need updates if
   providers change their storage layout; parsing failures are surfaced as
   non-fatal diagnostics (partial-failure exit code `1`) rather than crashes.
-- Codex agent-time is an approximation derived from log activity, not an exact
-  provider-reported duration; the clustering gap threshold is the main tuning
-  parameter.
+- Codex agent-time follows rollout turn boundaries; it falls back to an
+  approximation derived from log activity (with the clustering gap threshold as
+  the main tuning parameter) only when rollout turns are unavailable.
+- Imported Codex threads are visible only through their post-import turns; a
+  real Codex turn within 60 s of an import would be treated as replay.
 - Codex historical label changes cannot be reconstructed from the supported
   state database; only the latest explicit name or generated title is available.
 - All access is read-only and offline, satisfying the security constraints of

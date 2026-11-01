@@ -72,6 +72,14 @@ Claude storage limitations:
   Linux or macOS. Selecting them is a usage error rather than an empty report.
   See `docs/architecture/decisions/ADR-0003-claude-session-storage.md`.
 
+Codex storage limitations:
+
+- Threads the Codex App imported from another agent's transcripts (listed in
+  `~/.codex/external_agent_session_imports.json`) are reported only for Codex
+  turns recorded after the import; their replayed history is already counted
+  by the source agent. Imported threads without such turns are skipped and
+  reported as a counted warning, never silently dropped.
+
 Accepted date/time formats: `YYYYMMDD`, `YYYYMMDD-HHmm`, `YYYYMMDD-HHmmss`,
 `YYYY-MM-DD`, `YYYY-MM-DD-HHmm`, `YYYY-MM-DD-HHmmss`, and ISO 8601. A missing
 time defaults to `00:00:00`; a missing timezone uses local time; a
